@@ -1,6 +1,5 @@
-@if(status() === true){
-<p-tag value="Ativo" severity="success" [rounded]=""true />
+@if (status() === true) {
+<p-tag value="Ativo" [rounded]="true" severity="success" />
 } @else {
-    <p-tag value="Inativo" severity="warn" [rounded]="true" />
+<p-tag value="Inativo" [rounded]="true" severity="warn" />
 }
-
