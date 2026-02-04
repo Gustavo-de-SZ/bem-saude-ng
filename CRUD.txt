@@ -1,0 +1,7 @@
+CRUD:
+
+GET /pacientes               => Consultar todos
+GET /pacientes/{id}          => Consultar por ID
+PUT /pacientes/{id}          => Atualizar
+DELETE /pacientes/{id}       => Apagar
+POST /pacientes              => Cadastrar

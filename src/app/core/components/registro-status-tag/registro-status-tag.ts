@@ -1,5 +1,6 @@
 import { Component, input } from '@angular/core';
-import {TagModule} from "primeng/tag"
+import { TagModule } from "primeng/tag";
+
 @Component({
   selector: 'app-registro-status-tag',
   imports: [TagModule],
