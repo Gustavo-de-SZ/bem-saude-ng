@@ -42,16 +42,18 @@ export class List {
   private readonly formBuilder = inject(FormBuilder);
 
   pacienteForm = this.formBuilder.group({
-    nome: ['fdfgggdg', Validators.required, Validators.minLength(3), Validators.maxLength(100)],
-    telefone: ['', Validators.maxLength(100)],
-    cpf: ['', Validators.required, Validators.maxLength(15)],
-    dataNascimento: ['',  Validators.required],
-    email: [null, Validators.required, Validators.maxLength(60)],
-    endereco: [null, Validators.maxLength(45)],
+    nome: ["", [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+    telefone: ["", [Validators.required, Validators.maxLength(15)]],
+    cpf: ["", [Validators.required, Validators.maxLength(14)]],
+    dataNascimento: ["", [Validators.required]],
+    email: [null, [Validators.email, Validators.maxLength(60)]],
+    endereco: [null, [Validators.maxLength(45)]],
     observacoes: [null],
-    tipoSanguinio: ['0+', Validators.required]
-  })
-  tipoSanguinioOpcoes: string[] = ['A', 'A-', 'B+','B-', 'AB+', 'AB-', '0+', '0-'];
+    tipoSanguineo: ["O+", [Validators.required]]
+  });
+
+  tipoSanguineoOpcoes: string[] = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
   pacientes: PacienteResponseModel[] = [
     {
       id: '019d1f2a-8c31-7b4a-8f12-3a9c5d7e1b20',
@@ -125,8 +127,16 @@ export class List {
     }
   ];
   
-
   showDialog(): void {
     this.visible = true;
+  }
+
+  cancelar() {
+    this.visible = false;
+    this.pacienteForm.reset();
+  }
+
+  salvar() {
+
   }
 }

@@ -1,0 +1,16 @@
+
+
+@if (status() == "Confirmada"){
+<p-tag value="Confirmada" [rounded]="true" severity="success" />
+} @else if (status() == "Agendada") {
+<p-tag value="Agendada" [rounded]="true" severity="warn" />
+}
+@else if (status() == "Cancelada") {
+<p-tag value="Cancelada" [rounded]="true" severity="danger" />
+}
+@else if (status() == "Em Andamento") {
+<p-tag value="Em Andamento" [rounded]="true" severity="info" />
+}
+@else if (status() == "Finalizada") {
+<p-tag value="Finalizada" [rounded]="true" severity="contrast" />
+}

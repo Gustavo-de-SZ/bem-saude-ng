@@ -1,0 +1,6 @@
+@if (status() == "PAGA") {
+    <p-button variant="text" severity="info" icon="fa-solid fa-print"/>
+} @else if (status() == "EM ABERTO") {
+    <p-button variant="text" severity="success" icon="fa-solid fa-money-bills"/>
+    <p-button variant="text" severity="info" icon="fa-solid fa-print"/>
+}

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, inject } from '@angular/core';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from "primeng/button";
 import { InputTextModule } from "primeng/inputtext";
 import { SelectModule } from "primeng/select";
@@ -11,10 +11,11 @@ import { DialogModule } from 'primeng/dialog';
 
 @Component({
   selector: 'app-list',
-  imports: [ButtonModule, InputTextModule, SelectModule, FormsModule, TableModule, RegistroStatusTag, AutoFocusModule, DialogModule],
+  imports: [ButtonModule, InputTextModule, SelectModule, FormsModule, TableModule, RegistroStatusTag, AutoFocusModule, DialogModule, ReactiveFormsModule],
   templateUrl: './list.html',
 })
 export class List {
+  private readonly formBuilder = inject(FormBuilder);
 
   filtros = ["Todos", "Ativos", "Inativos"];
 
@@ -23,6 +24,10 @@ export class List {
   pesquisa: string = "";
 
   visible = false;
+
+  recepcionistaForm = this.formBuilder.group({
+    nome: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(45)]]
+  });
 
   recepcionistas: RecepcionistaResponseModel[] = [
     {
@@ -54,5 +59,14 @@ export class List {
   
   showDialog(){
     this.visible = true;
+  }
+
+  cancelar(){
+    this.visible = false;
+    this.recepcionistaForm.reset();
+  }
+
+  salvar(){
+
   }
 }

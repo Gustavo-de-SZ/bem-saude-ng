@@ -1,0 +1,5 @@
+@if (status() == "PAGA") {
+    <p-tag value="Paga" severity="success" [rounded]="true"/>
+} @else if (status() == "EM ABERTO") {
+    <p-tag value="Em Aberto" severity="warn" [rounded]="true"/>
+}

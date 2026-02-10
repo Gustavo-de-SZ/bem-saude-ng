@@ -1,0 +1,89 @@
+<div class="space-y-6 p-4">
+    <div class="flex justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Financeiro</h1>
+            <p class="text-gray-900">Gestão de faturas e pagamentos</p>
+        </div>
+
+        <p-button severity="success" label="Nova Fatura" icon="fa fa-plus" (onClick)="showDialog()" />
+    </div>
+
+
+    <div class="flex flex-row place-content-around gap-4 mb-2">
+        <div class="flex justify-between items-center rounded-md border-solid shadow-sm p-4 w-full">
+            <div>
+                <p class="text-gray-500">Em Aberto</p>
+                <h1 class="text-yellow-500 font-bold text-2xl">{{calcularEmAberto()}}</h1>
+            </div>
+
+            <p-button icon="fa-regular fa-clock" disabled severity="warn" />
+        </div>
+
+        <div class="flex justify-between items-center rounded-md border-solid shadow-sm p-4 w-full">
+            <div>
+                <!-- Mudar depois para Recebido Hoje -->
+                <p class="text-gray-500">Faturas Pagas</p>
+                <h1 class="text-green-500 font-bold text-2xl">{{calcularPagas()}}</h1>
+            </div>
+
+            <p-button disabled icon="fa-solid fa-check" />
+        </div>
+
+        <div class="flex justify-between items-center rounded-md border-solid shadow-sm p-4 w-full">
+            <div>
+                <p class="text-gray-500">Total do Mês</p>
+                <h1 class="text-blue-600 font-bold text-2xl">{{calcularTotal()}}</h1>
+            </div>
+
+            <p-button disabled icon="fa-solid fa-circle-dollar-to-slot" severity="info" />
+        </div>
+    </div>
+
+    <div class="rounded-md mt-5">
+        <div class="flex shadow-sm p-4 w-full gap-4 mb-0">
+            <input pInputText fluid placeholder="Buscar por paciente..." />
+
+            <p-select [options]="filtroStatus" [(ngModel)]="statusSelecionado"/>
+        </div>
+
+        <p-table [value]="clientesFinanceiros" [tableStyle]="{ 'min-width': '50rem' }" [paginator]="true" [rows]="5"
+            [rowsPerPageOptions]="[5, 10, 20]" class="shadow-sm">
+            <ng-template #header>
+                <tr>
+                    <th>FATURA</th>
+                    <th>PACIENTE</th>
+                    <th>DATA</th>
+                    <th>VALOR</th>
+                    <th>STATUS</th>
+                    <th>
+                        <div class="text-right">AÇÕES</div>
+                    </th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-fatura>
+                <tr>
+                    <td>
+                        <span class="font-bold">{{fatura.id}}</span>
+                    </td>
+                    <td>
+                        <span class="font-bold">{{fatura.paciente}}</span>
+                    </td>
+                    <td>
+                        <span class="text-gray-400 font-bold">{{fatura.data}}</span>
+                    </td>
+                    <td>
+                        <span class="font-bold">R$ {{fatura.valor.toFixed(2)}}</span>
+                    </td>
+                    <td>
+                        <app-registro-status-financeiro [status]="fatura.status" />
+                    </td>
+                    <td>
+                        <div class="flex gap-1 justify-end">
+                            <app-acoes-botao-financeiro [status]="fatura.status" />
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+</div>
