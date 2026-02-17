@@ -7,5 +7,5 @@ import { TagModule } from "primeng/tag";
   templateUrl: './registro-status-tag.html',
 })
 export class RegistroStatusTag {
-  status = input<boolean>();
+  status = input<string>();
 }

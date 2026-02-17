@@ -5,6 +5,7 @@ import Aura from '@primeuix/themes/aura';
 
 import { routes } from './app.routes';
 import { provideHttpClient, withFetch } from '@angular/common/http';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,6 +17,8 @@ export const appConfig: ApplicationConfig = {
       theme: {
           preset: Aura,
       }
-  })
+  }),
+  MessageService,
+  ConfirmationService,
   ]
 };

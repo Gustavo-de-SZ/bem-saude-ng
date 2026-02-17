@@ -18,8 +18,8 @@
         </div>
     </div>
 
-    <p-table [value]="pacientes" [tableStyle]="{ 'min-width': '50rem' }" [paginator]="true" [rows]="5"
-        [rowsPerPageOptions]="[5, 10, 20]">
+    <p-table [value]="pacientes()" [tableStyle]="{ 'min-width': '50rem' }" [paginator]="true" [rows]="10"
+        [rowsPerPageOptions]="[10, 20, 30]">
         <ng-template #header>
             <tr>
                 <th>Nome</th>
@@ -41,8 +41,13 @@
                 </td>
                 <td>
                     <div class="flex gap-1 justify-end">
-                        <p-button icon="fa-regular fa-pen-to-square" variant="text" severity="info" />
-                        <p-button icon="fa fa-trash" variant="text" severity="danger" />
+                        <p-button icon="fa-regular fa-pen-to-square" variant="text" severity="info" (click)="abrirModalEditar(paciente)" />
+
+                        @if(paciente.status){
+                            <p-button icon="fa-solid fa-person-circle-xmark" variant="text" severity="danger" (click)="confirmarInativar(paciente)" />
+                        } @else {
+                            <p-button icon="fa-solid fa-user-check" variant="text" severity="success" (click)="confirmarAtivacao(paciente)" />
+                        }
                     </div>
                 </td>
             </tr>
@@ -52,110 +57,75 @@
 
 <p-dialog header="Cadastro de Paciente" [modal]="true" [(visible)]="visible" [style]="{ width: '50rem' }">
     <form [formGroup]="pacienteForm">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
             <div class="md:col-span-2">
-                <label for="nome" class="font-semibold w-24">Nome: <span class="font-bold text-red-700">*</span></label>
+                <label for="nome" class="font-semibold w-24">Nome <span class="font-bold text-red-700">*</span></label>
                 <input pInputText id="nome" class="flex-auto" autocomplete="off" fluid formControlName="nome" />
-                @if (pacienteForm.get("nome")?.touched && pacienteForm.get("nome")?.hasError("required")) {
+                @if(pacienteForm.get("nome")?.touched && pacienteForm.get("nome")?.hasError("required")){
                 <small class="text-red-600">
-                    Nome é obrigatório.
+                    Nome é obrigatório
                 </small>
-                } @else if (pacienteForm.get("nome")?.touched && pacienteForm.get("nome")?.hasError("minlength")) {
+                } @else if(pacienteForm.get("nome")?.touched && pacienteForm.get("nome")?.hasError("minlength")){
                 <small class="text-red-600">
                     Nome deve ter no mínimo 3 caracteres.
                 </small>
-                } @else if (pacienteForm.get("nome")?.touched && pacienteForm.get("nome")?.hasError("maxlength")) {
+                } @else if(pacienteForm.get("nome")?.touched && pacienteForm.get("nome")?.hasError("maxlength")){
                 <small class="text-red-600">
-                    Nome deve ter no máximo 100 caracteres.
+                    Nome deve ter no máximo 255 caracteres.
                 </small>
                 }
             </div>
 
             <div>
-                <label for="cpf" class="font-semibold w-24">CPF: <span class="font-bold text-red-700">*</span></label>
+                <label for="cpf" class="font-semibold w-24">CPF <span class="font-bold text-red-700">*</span></label>
                 <p-inputmask mask="999.999.999-99" placeholder="999.999.999-99" fluid id="cpf" formControlName="cpf" />
-                @if (pacienteForm.get("cpf")?.touched && pacienteForm.get("cpf")?.hasError("required")) {
-                <small class="text-red-600">
-                    CPF é obrigatório.
-                </small>
-                } @else if(pacienteForm.get("cpf")?.touched && pacienteForm.get("cpf")?.hasError("maxlength")) {
-                <small class="text-red-600">
-                    CPF deve ter no máximo 14 caracteres.
-                </small>
+                @if(pacienteForm.get("cpf")?.touched && pacienteForm.get("cpf")?.hasError("required")){
+                <small class="text-red-600">CPF é obrigatório</small>
+                } @else if(pacienteForm.get("cpf")?.touched && pacienteForm.get("cpf")?.hasError("maxlength")){
+                <small class="text-red-600">CPF deve ter no máximo 14 caracteres.</small>
                 }
             </div>
-
             <div>
-                <label for="dataNascimento" class="font-semibold w-24">Data de Nascimento: <span
+                <label for="dataNascimento" class="font-semibold w-24">Data de Nascimento <span
                         class="font-bold text-red-700">*</span></label>
                 <p-date-picker fluid id="dataNascimento" formControlName="dataNascimento" />
-                @if (pacienteForm.get("dataNascimento")?.touched &&
-                pacienteForm.get("dataNascimento")?.hasError("required")) {
-                <small class="text-red-600">
-                    Data de nascimento é obrigatório.
-                </small>
+                @if(pacienteForm.get("dataNascimento")?.touched && pacienteForm.get("dataNascimento")?.hasError("required")){
+                <small class="text-red-600">Data de nascimento é obrigatório</small>
                 }
             </div>
-
             <div>
-                <label for="telefone" class="font-semibold w-24">Telefone: <span
+                <label for="telefone" class="font-semibold w-24">Telefone <span
                         class="font-bold text-red-700">*</span></label>
                 <p-inputmask mask="(99) 99999-9999" placeholder="(99) 99999-9999" fluid id="telefone"
                     formControlName="telefone" />
-                @if (pacienteForm.get("telefone")?.touched && pacienteForm.get("telefone")?.hasError("required")) {
-                <small class="text-red-600">
-                    Telefone é obrigatório.
-                </small>
-                } @else if (pacienteForm.get("telefone")?.touched &&
-                pacienteForm.get("telefone")?.hasError("maxlength")) {
-                <small class="text-red-600">
-                    Telefone deve ter no máximo 15 caracteres.
-                </small>
+                @if(pacienteForm.get("telefone")?.touched && pacienteForm.get("telefone")?.hasError("maxlength")){
+                <small class="text-red-600">Telefone deve ter no máximo 15 caracteres.</small>
                 }
             </div>
 
             <div>
-                <label for="email" class="font-semibold w-24">E-mail:</label>
+                <label for="email" class="font-semibold w-24">E-mail</label>
                 <input pInputText id="email" type="email" class="flex-auto" autocomplete="off" fluid
                     formControlName="email" />
-                @if (pacienteForm.get("email")?.touched && pacienteForm.get("email")?.hasError("maxlength")) {
-                <small class="text-red-600">
-                    E-mail deve ter no máximo 60 caracteres.
-                </small>
-                } @else if (pacienteForm.get("email")?.touched && pacienteForm.get("email")?.hasError("email"))
-                {
-                <small class="text-red-600">
-                    E-mail invalido.
-                </small>
-                }
-            </div>
-
-            <div>
-                <label for="tipoSanguineo" class="font-semibold w-24">Tipo Sanguíneo: <span
-                        class="font-bold text-red-700">*</span> </label>
-                <p-select [options]="tipoSanguineoOpcoes" fluid formControlName="tipoSanguineo"></p-select>
-                @if (pacienteForm.get("tipoSanguineo")?.touched &&
-                pacienteForm.get("tipoSanguineo")?.hasError("required")) {
-                <small class="text-red-600">
-                    Tipo sanguíneo é obrigatório.
-                </small>
+                @if(pacienteForm.get("email")?.touched && pacienteForm.get("email")?.hasError("maxlength")){
+                <small class="text-red-600">E-mail deve ter no máximo 255 caracteres.</small>
+                } @else if(pacienteForm.get("email")?.touched && pacienteForm.get("email")?.hasError("email")){
+                <small class="text-red-600">E-mail inválido.</small>
                 }
             </div>
 
             <div class="md:col-span-2">
-                <label for="endereco" class="font-semibold w-24">Endereço:</label>
+                <label for="endereco" class="font-semibold w-24">Endereço</label>
                 <input pInputText id="endereco" class="flex-auto" autocomplete="off" fluid formControlName="endereco" />
-                @if (pacienteForm.get("endereco")?.touched && pacienteForm.get("endereco")?.hasError("maxlength")) {
-                <small class="text-red-600">
-                    Endereço deve ter no máximo 45 caracteres.
-                </small>
+                @if(pacienteForm.get("endereco")?.touched && pacienteForm.get("endereco")?.hasError("maxlength")){
+                <small class="text-red-600">Endereço deve ter no máximo 255 caracteres.</small>
                 }
             </div>
 
             <div class="md:col-span-2">
-                <label for="observacoes" class="font-semibold w-24">Observações:</label>
-                <textarea id="observacoes" rows="5" cols="30" pTextarea fluid formControlName="observacoes"></textarea>
+                <label for="observacoes" class="font-semibold w-24">Observações</label>
+                <textarea rows="5" cols="30" pTextarea fluid formControlName="observacoes" id="observacoes"></textarea>
             </div>
         </div>
 

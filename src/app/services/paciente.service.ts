@@ -39,4 +39,10 @@ export class PacienteService {
 
     return this.httpClient.delete<void>(url);
   }
+
+  ativar(id: string): Observable<void> {
+    const url = `${environment.apiUrl}/pacientes/${id}/ativar`;
+
+    return this.httpClient.put<void>(url, {});
+  } 
 }

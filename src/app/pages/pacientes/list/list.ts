@@ -1,142 +1,273 @@
-import { Component, inject } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, inject, model } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
-import { RegistroStatusTag } from '../../../core/components/registro-status-tag/registro-status-tag';
-import { AutoFocusModule } from 'primeng/autofocus';
-import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
+import { RegistroStatusTag } from '../../../core/components/registro-status-tag/registro-status-tag';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AutoFocus } from 'primeng/autofocus';
+import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { PacienteResponseModel } from '../../../models/paciente.model';
-import { InputMaskModule } from "primeng/inputmask";
+import { PacienteCriarRequestModel, PacienteEditarRequestModel, PacienteResponseModel } from '../../../models/paciente.model';
+import { InputMaskModule } from 'primeng/inputmask';
 import { DatePickerModule } from 'primeng/datepicker';
-import { TextareaModule } from "primeng/textarea";
+import { TextareaModule } from 'primeng/textarea';
+import { FluidModule } from 'primeng/fluid';
+import { PacienteService } from '../../../services/paciente.service';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-list',
-  imports: [
-    ButtonModule, 
-    SelectModule, 
-    FormsModule, 
-    RegistroStatusTag, 
-    AutoFocusModule, 
-    DialogModule, 
-    TableModule, 
-    InputTextModule, 
-    InputMaskModule, 
-    DatePickerModule, 
-    TextareaModule,
-    ReactiveFormsModule
+  imports: [ButtonModule, SelectModule, TableModule, RegistroStatusTag, FormsModule, AutoFocus, DialogModule, InputTextModule,
+    InputMaskModule, DatePickerModule, TextareaModule, FluidModule, ReactiveFormsModule
   ],
   templateUrl: './list.html',
 })
 export class List {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly pacienteService = inject(PacienteService);
+  private readonly messageService = inject(MessageService);
+  private readonly confirmationService = inject(ConfirmationService);
+
+  idEditar: string | undefined = undefined;
   filtros = ["Todos", "Ativos", "Inativos"];
-
   filtroSelecionado: string = "Todos";
-
   pesquisa: string = "";
-
   visible: boolean = false;
 
-  private readonly formBuilder = inject(FormBuilder);
-
   pacienteForm = this.formBuilder.group({
-    nome: ["", [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-    telefone: ["", [Validators.required, Validators.maxLength(15)]],
-    cpf: ["", [Validators.required, Validators.maxLength(14)]],
-    dataNascimento: ["", [Validators.required]],
-    email: [null, [Validators.email, Validators.maxLength(60)]],
-    endereco: [null, [Validators.maxLength(45)]],
-    observacoes: [null],
-    tipoSanguineo: ["O+", [Validators.required]]
+    nome: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(255)]],
+    telefone: ['', [Validators.required, Validators.maxLength(15)]],
+    cpf: ['', [Validators.required, Validators.maxLength(14)]],
+    dataNascimento: ['', [Validators.required]],
+    email: ['', [Validators.email, Validators.maxLength(255)]],
+    endereco: ['', [Validators.maxLength(255)]],
+    observacoes: [''],
   });
 
-  tipoSanguineoOpcoes: string[] = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+  pacientes = model<PacienteResponseModel[]>([]);
 
-  pacientes: PacienteResponseModel[] = [
-    {
-      id: '019d1f2a-8c31-7b4a-8f12-3a9c5d7e1b20',
-      nome: 'Ana Paula Ferreira',
-      cpf: '38127495016',
-      telefone: '(11) 98765-4321',
-      status: true
-    },
-    {
-      id: '019d1f2a-8c31-7c10-9a3f-1b6d0e2c4f98',
-      nome: 'Bruno Henrique Souza',
-      cpf: '90561372840',
-      telefone: '(21) 99812-3045',
-      status: true
-    },
-    {
-      id: '019d1f2a-8c31-7d2e-8c77-5f1a9e0d3b41',
-      nome: 'Carla Mendes Lima',
-      cpf: '14785236900',
-      telefone: '(31) 99123-7788',
-      status: false
-    },
-    {
-      id: '019d1f2a-8c31-7e55-b2c1-0a7d3c9f8e12',
-      nome: 'Diego Alves Rocha',
-      cpf: '73619028455',
-      telefone: '(41) 99220-1100',
-      status: true
-    },
-    {
-      id: '019d1f2a-8c31-7f8a-8b0d-9c2e1a4f7d33',
-      nome: 'Eduarda Nascimento',
-      cpf: '51290837461',
-      telefone: '(51) 99555-6677',
-      status: true
-    },
-    {
-      id: '019d1f2a-8c31-70c4-a6e9-2d8f1c3b5a90',
-      nome: 'Felipe Cardoso',
-      cpf: '86420391572',
-      telefone: '(61) 99701-2233',
-      status: false
-    },
-    {
-      id: '019d1f2a-8c31-71f6-98a2-7e3b9d1c0f44',
-      nome: 'Gabriela Ribeiro',
-      cpf: '23014587936',
-      telefone: '(71) 98888-9900',
-      status: true
-    },
-    {
-      id: '019d1f2a-8c31-7239-8d41-4c0b2a9e6f10',
-      nome: 'Hugo Martins',
-      cpf: '69038127405',
-      telefone: '(81) 99660-4455',
-      status: false
-    },
-    {
-      id: '019d1f2a-8c31-73a7-b7d0-11a2c3d4e5f6',
-      nome: 'Isabela Costa',
-      cpf: '41873025964',
-      telefone: '(91) 99333-2211',
-      status: true
-    },
-    {
-      id: '019d1f2a-8c31-744d-9f8c-6a1b2c3d4e55',
-      nome: 'João Pedro Batista',
-      cpf: '57294180326',
-      telefone: '(85) 99444-5566',
-      status: true
-    }
-  ];
-  
+  constructor() {
+    this.carregarPacientes();
+  }
+
+  carregarPacientes() {
+    this.pacienteService.getAll().subscribe({
+      next: (pacientes: PacienteResponseModel[]) => {
+        this.pacientes.set(pacientes);
+      },
+      error: (erro: Error) => {
+        console.log(`Erro ao carregar pacientes ${erro}`);
+        this.messageService.add({
+          severity: "error",
+          summary: "Erro",
+          detail: "Ocorreu um erro ao carregar os pacientes"
+        });
+      }
+    });
+  }
+
   showDialog(): void {
+    this.idEditar = undefined;
+    this.pacienteForm.reset();
+    this.pacienteForm.get('cpf')?.enable();
+    this.pacienteForm.get('dataNascimento')?.enable();
     this.visible = true;
   }
 
   cancelar() {
     this.visible = false;
     this.pacienteForm.reset();
+    this.idEditar = undefined;
   }
 
   salvar() {
+    if (this.idEditar === undefined) {
+      const form: PacienteCriarRequestModel = {
+        nome: this.pacienteForm.getRawValue().nome!,
+        cpf: this.pacienteForm.getRawValue().cpf!,
+        telefone: this.pacienteForm.getRawValue().telefone!,
+        endereco: this.pacienteForm.getRawValue().endereco || '',
+        email: this.pacienteForm.getRawValue().email || '',
+        data_nascimento: this.formatarData(this.pacienteForm.getRawValue().dataNascimento),
+        observacoes: this.pacienteForm.getRawValue().observacoes || '',
+      };
+      this.cadastrar(form);
+    } else {
+      const form: PacienteEditarRequestModel = {
+        nome: this.pacienteForm.getRawValue().nome!,
+        telefone: this.pacienteForm.getRawValue().telefone!,
+        endereco: this.pacienteForm.getRawValue().endereco || '',
+        email: this.pacienteForm.getRawValue().email || '',
+        observacoes: this.pacienteForm.getRawValue().observacoes || '',
+      };
+      this.editar(form);
+    }
+  }
 
+  private formatarData(data: any): string {
+    if (!data) return '';
+    if (data instanceof Date) {
+      return data.toISOString().split('T')[0];
+    }
+    return String(data);
+  }
+
+  cadastrar(form: PacienteCriarRequestModel) {
+    this.pacienteService.create(form).subscribe({
+      next: () => {
+        this.visible = false;
+        this.pacienteForm.reset();
+        this.messageService.add({
+          severity: "success",
+          summary: "Show de bola!",
+          detail: "Paciente cadastrado com sucesso"
+        });
+        this.carregarPacientes();
+      },
+      error: (erro: Error) => {
+        console.log(`Ocorreu um erro ao tentar cadastrar paciente: ${erro}`);
+        this.messageService.add({
+          severity: "error",
+          summary: "Erro",
+          detail: "Ocorreu um erro ao cadastrar paciente"
+        });
+      }
+    });
+  }
+
+  editar(form: PacienteEditarRequestModel) {
+    this.pacienteService.update(this.idEditar!, form).subscribe({
+      next: () => {
+        this.visible = false;
+        this.pacienteForm.reset();
+        this.idEditar = undefined;
+        this.messageService.add({
+          severity: "success",
+          summary: "Show de bola!",
+          detail: "Paciente alterado com sucesso"
+        });
+        this.carregarPacientes();
+      },
+      error: (erro: Error) => {
+        console.log(`Ocorreu um erro ao tentar alterar paciente: ${erro}`);
+        this.messageService.add({
+          severity: "error",
+          summary: "Erro",
+          detail: "Ocorreu um erro ao alterar paciente"
+        });
+      }
+    });
+  }
+
+  abrirModalEditar(paciente: PacienteResponseModel) {
+    this.idEditar = paciente.id;
+    this.pacienteService.getById(paciente.id).subscribe({
+      next: (dados) => {
+        this.pacienteForm.patchValue({
+          nome: dados.nome,
+          cpf: dados.cpf,
+          telefone: dados.telefone,
+          endereco: dados.endereco,
+          email: dados.email,
+          dataNascimento: dados.data_nascimento,
+          observacoes: dados.observacoes,
+        });
+        this.pacienteForm.get('cpf')?.disable();
+        this.pacienteForm.get('dataNascimento')?.disable();
+        this.visible = true;
+      },
+      error: (erro: Error) => {
+        console.log(`Erro ao buscar paciente: ${erro}`);
+        this.messageService.add({
+          severity: "error",
+          summary: "Erro",
+          detail: "Ocorreu um erro ao buscar dados do paciente"
+        });
+      }
+    });
+  }
+
+  confirmarAtivacao(paciente: PacienteResponseModel) {
+    this.confirmationService.confirm({
+      message: `Deseja ativar o paciente '${paciente.nome}'?`,
+      header: 'Cuidado',
+      icon: 'fa fa-info-circle',
+      rejectLabel: 'Cancelar',
+      rejectButtonProps: {
+        label: 'Cancelar',
+        severity: 'secondary',
+        outlined: true
+      },
+      acceptButtonProps: {
+        label: 'Ativar',
+        severity: 'success'
+      },
+      accept: () => {
+        this.ativar(paciente);
+      }
+    });
+  }
+
+  confirmarInativar(paciente: PacienteResponseModel) {
+    this.confirmationService.confirm({
+      message: `Deseja inativar o paciente '${paciente.nome}'?`,
+      header: 'Cuidado',
+      icon: 'fa fa-info-circle',
+      rejectLabel: 'Cancelar',
+      rejectButtonProps: {
+        label: 'Cancelar',
+        severity: 'secondary',
+        outlined: true
+      },
+      acceptButtonProps: {
+        label: 'Inativar',
+        severity: 'danger'
+      },
+      accept: () => {
+        this.inativar(paciente);
+      }
+    });
+  }
+
+  ativar(paciente: PacienteResponseModel) {
+    this.pacienteService.ativar(paciente.id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: "success",
+          summary: "Show de bola!",
+          detail: "Paciente ativado com sucesso"
+        });
+        this.carregarPacientes();
+      },
+      error: (erro: Error) => {
+        console.log(`Ocorreu um erro ao tentar ativar paciente: ${erro}`);
+        this.messageService.add({
+          severity: "error",
+          summary: "Erro",
+          detail: "Ocorreu um erro ao ativar paciente"
+        });
+      }
+    });
+  }
+
+  inativar(paciente: PacienteResponseModel) {
+    this.pacienteService.delete(paciente.id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: "success",
+          summary: "Show de bola!",
+          detail: "Paciente inativado com sucesso"
+        });
+        this.carregarPacientes();
+      },
+      error: (erro: Error) => {
+        console.log(`Ocorreu um erro ao tentar inativar paciente: ${erro}`);
+        this.messageService.add({
+          severity: "error",
+          summary: "Erro",
+          detail: "Ocorreu um erro ao inativar paciente"
+        });
+      }
+    });
   }
 }

@@ -11,19 +11,19 @@ export class RecepcionistaService {
 
   private httpClient = inject(HttpClient);
 
-  getAll(): Observable<RecepcionistaResponseModel[]>{
+  getAll(): Observable<RecepcionistaResponseModel[]> {
     const url = `${environment.apiUrl}/recepcionistas`;
 
     return this.httpClient.get<RecepcionistaResponseModel[]>(url);
   }
 
-  create(form: RecepcionistaCriarRequestModel): Observable<RecepcionistaResponseModel>{
+  create(form: RecepcionistaCriarRequestModel): Observable<RecepcionistaResponseModel> {
     const url = `${environment.apiUrl}/recepcionistas`;
 
     return this.httpClient.post<RecepcionistaResponseModel>(url, form);
   }
 
-  update(id: string, form: RecepcionistaEditarRequestModel): Observable<RecepcionistaResponseModel>{
+  update(id: string, form: RecepcionistaEditarRequestModel): Observable<RecepcionistaResponseModel> {
     const url = `${environment.apiUrl}/recepcionistas/${id}`;
 
     return this.httpClient.put<RecepcionistaResponseModel>(url, form);
@@ -40,4 +40,11 @@ export class RecepcionistaService {
 
     return this.httpClient.delete<void>(url);
   }
+
+  ativar(id: string): Observable<void> {
+    const url = `${environment.apiUrl}/recepcionistas/${id}/ativar`;
+
+    return this.httpClient.put<void>(url, {});
+  }
+
 }
