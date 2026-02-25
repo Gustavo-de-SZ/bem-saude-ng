@@ -26,7 +26,7 @@ export class PacienteService {
     const url = `${environment.apiUrl}/pacientes/${id}`;
 
     return this.httpClient.put<PacienteResponseModel>(url, form);
-  }
+  }             
 
   getById(id: string): Observable<PacientePesquisaResponseModel> {
     const url = `${environment.apiUrl}/pacientes/${id}`;
