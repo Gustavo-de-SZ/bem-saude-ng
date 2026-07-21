@@ -1,0 +1,10 @@
+# Import all repositories to ensure they are properly initialized
+from .agendamento_repositorio import RepositorioAgendamento
+from .servico_repositorio import RepositorioServico
+from .transacao_repositorio import RepositorioTransacao
+from .categoria_repositorio import RepositorioCategoria
+from .chamado_repositorio import RepositorioChamado
+from .cliente_repositorio import RepositorioCliente
+from .favorito_repositorio import RepositorioFavorito
+from .profissional_repositorio import RepositorioProfissional
+from .usuario_repositorio import RepositorioUsuario
