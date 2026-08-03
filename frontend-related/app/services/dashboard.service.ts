@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { switchMap, map } from 'rxjs/operators';
 import { StatCard } from '../models/stat-card';
 import { Agendamento } from '../models/agendamento';
 import { ConfigService } from './config.service';
@@ -64,13 +64,43 @@ export class DashboardService {
     }).pipe(
       switchMap(token => {
         this.logTokenPayload(token);
-        return this.http.get<StatCard[]>(`${this.configService.getApiUrl()}/clientes/stats`, {
+        
+        return this.http.get<any>(`${this.configService.getApiUrl()}/clientes/stats`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           }
-        });
+        }).pipe(
+          map(res => {
+            if (Array.isArray(res)) return res; // backend might be fixed already
+            
+            return [
+              {
+                titulo: 'Total de Clientes',
+                valor: String(res.total || 0),
+                descricao: 'Clientes cadastrados',
+                icone: 'pi pi-users',
+                corClasse: 'tcc-icon-blue'
+              },
+              {
+                titulo: 'Clientes Ativos',
+                valor: String(res.ativos || 0),
+                descricao: 'Com serviços recentes',
+                icone: 'pi pi-check-circle',
+                corClasse: 'tcc-icon-green'
+              },
+              {
+                titulo: 'Clientes Inativos',
+                valor: String(res.inativos || 0),
+                descricao: 'Sem serviços há 30 dias',
+                icone: 'pi pi-clock',
+                corClasse: 'tcc-icon-orange'
+              }
+            ];
+          })
+        );
+
       })
     );
   }

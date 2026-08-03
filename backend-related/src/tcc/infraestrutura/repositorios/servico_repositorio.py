@@ -6,32 +6,41 @@ class RepositorioServico:
     def __init__(self, session: Session):
         self.session = session
 
-    def listar_todos(self) -> List[ModeloServico]:
-        return self.session.query(ModeloServico).all()
+    def listar_por_usuario(self, usuario_id: int) -> List[ModeloServico]:
+        """Retorna apenas os serviços criados por este usuário/técnico específico."""
+        return self.session.query(ModeloServico).filter(ModeloServico.usuario_id == usuario_id).all()
 
-    def buscar_por_titulo(self, titulo: str) -> Optional[ModeloServico]:
-        return self.session.query(ModeloServico).filter(ModeloServico.titulo == titulo).first()
-
-    def criar(self, icone: str, titulo: str, status: str, cliente: str,
-              data: str, duracao: str, valor: float) -> ModeloServico:
+    def criar(self, usuario_id: int, icone: str, titulo: str, status: str, cliente: str,
+              data: str, duracao: str, valor: float, equipamento_id: int = None) -> ModeloServico:
+        """Cria o serviço vinculando-o ao ID do técnico logado."""
         servico = ModeloServico(
+            usuario_id=usuario_id,
             icone=icone,
             titulo=titulo,
             status=status,
             cliente=cliente,
             data=data,
             duracao=duracao,
-            valor=valor
+            valor=valor,
+            equipamento_id=equipamento_id
         )
         self.session.add(servico)
         self.session.commit()
         self.session.refresh(servico)
         return servico
 
-    def atualizar(self, titulo: str, icone: str = None, status: str = None,
+    def buscar_por_titulo_e_usuario(self, titulo: str, usuario_id: int) -> Optional[ModeloServico]:
+        """Retorna o serviço com o título especificado que pertence ao usuário dado."""
+        return self.session.query(ModeloServico).filter(
+            ModeloServico.titulo == titulo,
+            ModeloServico.usuario_id == usuario_id
+        ).first()
+
+    def atualizar(self, titulo: str, usuario_id: int, icone: str = None, status: str = None,
                   cliente: str = None, data: str = None, duracao: str = None,
-                  valor: float = None) -> bool:
-        servico = self.buscar_por_titulo(titulo)
+                  valor: float = None, equipamento_id: int = None) -> bool:
+        """Atualiza o serviço com o título especificado que pertence ao usuário dado."""
+        servico = self.buscar_por_titulo_e_usuario(titulo, usuario_id)
         if not servico:
             return False
 
@@ -48,15 +57,18 @@ class RepositorioServico:
             update_data['duracao'] = duracao
         if valor is not None:
             update_data['valor'] = valor
+        if equipamento_id is not None:
+            update_data['equipamento_id'] = equipamento_id
 
         if update_data:
-            self.session.query(ModeloServico).filter(ModeloServico.titulo == titulo).update(update_data)
+            self.session.query(ModeloServico).filter(ModeloServico.id == servico.id).update(update_data)
             self.session.commit()
             return True
         return False
 
-    def deletar(self, titulo: str) -> bool:
-        servico = self.buscar_por_titulo(titulo)
+    def deletar(self, titulo: str, usuario_id: int) -> bool:
+        """Deleta o serviço com o título especificado que pertence ao usuário dado."""
+        servico = self.buscar_por_titulo_e_usuario(titulo, usuario_id)
         if not servico:
             return False
 

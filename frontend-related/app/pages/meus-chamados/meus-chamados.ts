@@ -25,17 +25,17 @@ interface Chamado {
       </header>
 
       <div class="tcc-chamados-list">
-        @for (chamado of chamados; track chamado.id) {
+        @for (chamado of chamados; track chamado.id; let i = $index) {
           <div class="tcc-form-card">
             <div class="tcc-chamado-item">
               <div class="tcc-chamado-info">
-                <span class="tcc-chamado-id">#{{ chamado.id }}</span>
+                <span class="tcc-chamado-id">#{{ i + 1 }}</span>
                 <span class="tcc-chamado-equipamento">{{ chamado.equipamento }}</span>
                 <span class="tcc-chamado-data">{{ chamado.dataCriacao }}</span>
               </div>
               <div class="tcc-chamado-actions">
                 <span class="tcc-badge" [class]="statusBadgeClass(chamado.status)">{{ chamado.status }}</span>
-                <a class="tcc-link" [routerLink]="['/cliente/chamado', chamado.id]">Ver Detalhes</a>
+                <a class="tcc-link" [routerLink]="['/cliente/chat', chamado.id]">Ver Detalhes</a>
               </div>
             </div>
           </div>

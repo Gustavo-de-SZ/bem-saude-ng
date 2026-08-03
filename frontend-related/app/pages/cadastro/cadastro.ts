@@ -9,9 +9,12 @@ import { MessageService } from 'primeng/api';
 import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { take, switchMap, tap, map } from 'rxjs/operators';
-import { Observable, of } from 'rxjs';
+import { take, switchMap, tap, map, timeout } from 'rxjs/operators';
+import { Observable, of, TimeoutError } from 'rxjs';
 import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive';
+import { CnpjMaskDirective } from '../../shared/directives/cnpj-mask.directive';
+import { AutoCompleteModule } from 'primeng/autocomplete';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-cadastro',
@@ -22,11 +25,13 @@ import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive
     SelectModule,
     ToastModule,
     ButtonModule,
-    PhoneMaskDirective
+    AutoCompleteModule,
+    PhoneMaskDirective,
+    CnpjMaskDirective
   ],
-  providers: [MessageService],
+  
   template: `
-    <p-toast></p-toast>
+    
 
     <div class="cd-layout">
 
@@ -194,15 +199,18 @@ import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive
               </div>
 
               <div class="cd-field">
-                <label for="cliLocal" class="cd-label">Localização</label>
-                <input
+                <label for="cliLocal" class="cd-label">Cidade / Local Atuação</label>
+                <p-autoComplete
                   id="cliLocal"
                   formControlName="local"
-                  type="text"
+                  [suggestions]="filteredCidades"
+                  (completeMethod)="filterCidades($event)"
+                  field="label"
                   placeholder="Ex: São Paulo - SP"
-                  class="ns-input"
-                  [class.ns-input-error]="isFieldInvalid('cliente', 'local')"
-                />
+                  inputStyleClass="ns-input"
+                  [styleClass]="isFieldInvalid('cliente', 'local') ? 'ns-input-error' : ''"
+                  autocomplete="off"
+                ></p-autoComplete>
                 @if (isFieldInvalid('cliente', 'local')) {
                   <span class="cd-error">
                     <i class="pi pi-info-circle"></i> Localização é obrigatória
@@ -292,6 +300,33 @@ import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive
               </div>
 
               <div class="cd-field">
+                <label for="tecCnpj" class="cd-label">CNPJ</label>
+                <input
+                  id="tecCnpj"
+                  formControlName="cnpj"
+                  type="text"
+                  placeholder="Ex: 00.000.000/0000-00"
+                  class="ns-input"
+                  [class.ns-input-error]="isFieldInvalid('tecnico', 'cnpj')"
+                  appCnpjMask
+                />
+                @if (isFieldInvalid('tecnico', 'cnpj')) {
+                  <span class="cd-error">
+                    <i class="pi pi-info-circle"></i>
+                    @if (tecnicoForm.get('cnpj')?.hasError('required')) {
+                      CNPJ é obrigatório
+                    } @else if (tecnicoForm.get('cnpj')?.hasError('invalidCNPJLength')) {
+                      CNPJ deve ter 14 dígitos
+                    } @else if (tecnicoForm.get('cnpj')?.hasError('invalidCNPJ')) {
+                      CNPJ inválido
+                    } @else {
+                      CNPJ inválido
+                    }
+                  </span>
+                }
+              </div>
+
+              <div class="cd-field">
                 <label for="tecTelefone" class="cd-label">Telefone Celular</label>
                 <input
                   id="tecTelefone"
@@ -324,14 +359,17 @@ import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive
 
               <div class="cd-field">
                 <label for="tecLocal" class="cd-label">Cidade / Local Atuação</label>
-                <input
+                <p-autoComplete
                   id="tecLocal"
                   formControlName="local"
-                  type="text"
+                  [suggestions]="filteredCidades"
+                  (completeMethod)="filterCidades($event)"
+                  field="label"
                   placeholder="Ex: São Paulo - SP"
-                  class="ns-input"
-                  [class.ns-input-error]="isFieldInvalid('tecnico', 'local')"
-                />
+                  inputStyleClass="ns-input"
+                  [styleClass]="isFieldInvalid('tecnico', 'local') ? 'ns-input-error' : ''"
+                  autocomplete="off"
+                ></p-autoComplete>
                 @if (isFieldInvalid('tecnico', 'local')) {
                   <span class="cd-error">
                     <i class="pi pi-info-circle"></i> Localização é obrigatória
@@ -634,7 +672,7 @@ import { PhoneMaskDirective } from '../../shared/directives/phone-mask.directive
       display: flex;
       align-items: center;
     }
-  `
+  `,
 })
 export class Cadastro implements OnInit {
   auth = inject(AuthService);
@@ -643,11 +681,16 @@ export class Cadastro implements OnInit {
   router = inject(Router);
   fb = inject(FormBuilder);
   messageService = inject(MessageService);
+  http = inject(HttpClient);
 
   user: any = null;
   selectedRole: 'cliente' | 'tecnico' | null = null;
   loading = false;
   hasRoleInToken = false;
+
+  // For city autocomplete
+  cidades: any[] = []; // Full list of cities from IBGE
+  filteredCidades: any[] = []; // Filtered list for autocomplete
 
   clienteForm!: FormGroup;
   tecnicoForm!: FormGroup;
@@ -677,7 +720,7 @@ export class Cadastro implements OnInit {
   ngOnInit(): void {
     // 1. Initialize forms with validations
     this.clienteForm = this.fb.group({
-      nome: ['', [Validators.required, Validators.minLength(3)]],
+      nome: ['', [Validators.required, Validators.minLength(3)]], // Changed to blank initially
       email: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
       empresa: ['', [Validators.required, Validators.minLength(2)]],
       telefone: ['', [Validators.required, this.phoneNumberValidator]],
@@ -686,23 +729,26 @@ export class Cadastro implements OnInit {
     });
 
     this.tecnicoForm = this.fb.group({
-      nome: ['', [Validators.required, Validators.minLength(3)]],
+      nome: ['', [Validators.required, Validators.minLength(3)]], // Changed to blank initially
       email: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
       especialidadePrincipal: ['Suporte Técnico', [Validators.required]],
+      cnpj: ['', [Validators.required, this.cnpjValidator]],
       local: ['', [Validators.required, Validators.minLength(3)]],
       telefone: ['', [Validators.required, this.phoneNumberValidator]],
       tempoResposta: ['Em até 1 hora', [Validators.required]]
     });
 
-    // 2. Fetch logged in user and prefill forms
+    // 2. Load cities for autocomplete
+    this.loadCidades();
+
+    // 3. Fetch logged in user and prefill forms (only email, keep nome blank)
     this.auth.user$.subscribe(u => {
       if (u) {
         this.user = u;
         const email = u.email || '';
-        const name = u.name || u.given_name || '';
 
-        this.clienteForm.patchValue({ nome: name, email: email });
-        this.tecnicoForm.patchValue({ nome: name, email: email });
+        this.clienteForm.patchValue({ nome: '', email: email }); // Nome blank, email from token
+        this.tecnicoForm.patchValue({ nome: '', email: email }); // Nome blank, email from token
 
         // Check if role is pre-defined in token
         const roles = u['https://tcc-ng.com/roles'] || [];
@@ -715,6 +761,80 @@ export class Cadastro implements OnInit {
         }
       }
     });
+  }
+
+  loadCidades(): void {
+    this.http.get<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/municipios')
+      .pipe(
+        timeout(20000) // Increased timeout to 20 seconds for IBGE API
+      )
+      .subscribe({
+        next: (data) => {
+          // Transform IBGE data to format suitable for autocomplete
+          this.cidades = data
+            .filter(municipio => municipio.microrregiao) // Filter out null microrregiao
+            .map(municipio => {
+              // Safely access nested properties with fallback
+              const estadoSigla = municipio.microrregiao?.mesorregiao?.UF?.sigla ?? '';
+              const label = estadoSigla
+                ? `${municipio.nome} - ${estadoSigla}`
+                : municipio.nome;
+              return { label, value: label };
+            });
+
+          // Initially, show all cities (or empty, depending on preference)
+          this.filteredCidades = this.cidades.slice(0, 20); // Show first 20 as placeholder
+        },
+        error: (err) => {
+          if (err instanceof TimeoutError) {
+            console.error('Timeout ao carregar cidades do IBGE (20s exceeded)');
+          } else {
+            console.error('Erro ao carregar cidades do IBGE:', err);
+          }
+          // Fallback to some major cities if API fails
+          this.cidades = [
+            { label: 'São Paulo - SP', value: 'São Paulo - SP' },
+            { label: 'Rio de Janeiro - RJ', value: 'Rio de Janeiro - RJ' },
+            { label: 'Belo Horizonte - MG', value: 'Belo Horizonte - MG' },
+            { label: 'Brasília - DF', value: 'Brasília - DF' },
+            { label: 'Salvador - BA', value: 'Salvador - BA' },
+            { label: 'Fortaleza - CE', value: 'Fortaleza - CE' },
+            { label: 'Belo Horizonte - MG', value: 'Belo Horizonte - MG' },
+            { label: 'Manaus - AM', value: 'Manaus - AM' },
+            { label: 'Curitiba - PR', value: 'Curitiba - PR' },
+            { label: 'Porto Alegre - RS', value: 'Porto Alegre - RS' },
+            { label: 'Goiânia - GO', value: 'Goiânia - GO' },
+            { label: 'Belém - PA', value: 'Belém - PA' },
+            { label: 'São Luís - MA', value: 'São Luís - MA' },
+            { label: 'Maceió - AL', value: 'Maceió - AL' },
+            { label: 'Natal - RN', value: 'Natal - RN' },
+            { label: 'Campinas - SP', value: 'Campinas - SP' },
+            { label: 'São Bernardo do Campo - SP', value: 'São Bernardo do Campo - SP' },
+            { label: 'Santo André - SP', value: 'Santo André - SP' },
+            { label: 'Osasco - SP', value: 'Osasco - SP' }
+          ];
+          this.filteredCidades = this.cidades.slice();
+        }
+      });
+  }
+
+  filterCidades(event: any): void {
+    const query = event.query;
+    this.filteredCidades = this.filterCidade(query, this.cidades);
+  }
+
+  filterCidade(query: string, cidades: any[]): any[] {
+    // In a real application, make a request to a remote url with the query and return filtered results
+    // For now, we filter locally
+    const filtered: any[] = [];
+    const lowerQuery = query.toLowerCase();
+    for (let i = 0; i < cidades.length; i++) {
+      const cidade = cidades[i];
+      if (cidade.label.toLowerCase().indexOf(lowerQuery) === 0) {
+        filtered.push(cidade);
+      }
+    }
+    return filtered;
   }
 
   isRoleFixed(): boolean {
@@ -760,6 +880,57 @@ export class Cadastro implements OnInit {
     // For 11-digit numbers, the third digit (after area code) should be 9 (mobile)
     if (digitsOnly.length === 11 && digitsOnly[2] !== '9') {
       return { 'invalidMobileFormat': true };
+    }
+
+    return null;
+  }
+
+  private cnpjValidator(control: any): { [key: string]: any } | null {
+    const value = control.value;
+
+    // Allow empty values (required validator will handle empty case)
+    if (!value) {
+      return null;
+    }
+
+    // Remove all non-digit characters
+    const digitsOnly = value.replace(/\D/g, '');
+
+    // Validate digit count: should be exactly 14 digits
+    if (digitsOnly.length !== 14) {
+      return { 'invalidCNPJLength': true };
+    }
+
+    // Validate first 8 digits (should not be all zeros)
+    if (digitsOnly.substring(0, 8) === '00000000') {
+      return { 'invalidCNPJ': true };
+    }
+
+    // Validate the two check digits
+    let sum = 0;
+    let weight;
+
+    // Calculate first verification digit
+    weight = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(digitsOnly.charAt(i)) * weight[i];
+    }
+    let remainder = sum % 11;
+    let digit = (remainder < 2) ? 0 : 11 - remainder;
+    if (parseInt(digitsOnly.charAt(12)) !== digit) {
+      return { 'invalidCNPJ': true };
+    }
+
+    // Calculate second verification digit
+    sum = 0;
+    weight = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    for (let i = 0; i < 13; i++) {
+      sum += parseInt(digitsOnly.charAt(i)) * weight[i];
+    }
+    remainder = sum % 11;
+    digit = (remainder < 2) ? 0 : 11 - remainder;
+    if (parseInt(digitsOnly.charAt(13)) !== digit) {
+      return { 'invalidCNPJ': true };
     }
 
     return null;
@@ -868,7 +1039,8 @@ export class Cadastro implements OnInit {
           especialidadePrincipal: formValue.especialidadePrincipal,
           local: formValue.local,
           telefone: formValue.telefone,
-          tempoResposta: formValue.tempoResposta
+          tempoResposta: formValue.tempoResposta,
+          cnpj: formValue.cnpj
         };
 
         return this.profileService.criarPerfilTecnico(tecnicoData).pipe(
@@ -880,7 +1052,7 @@ export class Cadastro implements OnInit {
         if (result) { // Only proceed if we didn't redirect due to existing profile
           // Local persistence and state update
           localStorage.setItem(`tcc_profile_completed_${result.email}`, 'true');
-          this.profileService.setPerfilCriado('tecnico');
+          this.profileService.setPerfilCriado('tecnico', result.res.aprovado_pelo_admin);
           this.messageService.add({
             severity: 'success',
             summary: 'Cadastro Concluído',
@@ -888,7 +1060,12 @@ export class Cadastro implements OnInit {
             life: 3000
           });
           setTimeout(() => {
-            this.router.navigate(['/painel/dashboard']);
+            // Navigate to appropriate page based on approval status
+            if (result.res.aprovado_pelo_admin) {
+              this.router.navigate(['/painel/dashboard']);
+            } else {
+              this.router.navigate(['/pendente-aprovacao']);
+            }
           }, 1500);
         }
         this.loading = false;

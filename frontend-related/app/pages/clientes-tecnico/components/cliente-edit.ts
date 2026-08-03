@@ -1,3 +1,6 @@
+import { AutoCompleteModule } from 'primeng/autocomplete';
+import { HttpClient } from '@angular/common/http';
+import { timeout, TimeoutError } from 'rxjs';
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -17,6 +20,7 @@ import { ClienteService } from '../../../services/cliente.service';
   selector: 'app-editar-cliente',
   standalone: true,
   imports: [
+    AutoCompleteModule,
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
@@ -24,150 +28,164 @@ import { ClienteService } from '../../../services/cliente.service';
     SelectModule,
     ToastModule
   ],
-  providers: [MessageService],
+  
   template: `
     <div class="ns-page-container">
-      <div class="ns-back-btn" (click)="goBack()">
-        <i class="pi pi-arrow-left"></i>
-      </div>
+      <!-- Replace the old ns-back-btn block with this header -->
+      <header class="ns-page-header">
+        <a routerLink="/painel/clientes" class="ns-back-btn">
+          <i class="pi pi-chevron-left"></i>
+        </a>
+        <div>
+          <h1>Editar Cliente</h1>
+          <p>Atualize as informações do cliente</p>
+        </div>
+      </header>
 
-      <main class="ns-main-content">
-        <div class="ns-grid-layout">
-          <div class="ns-form-column">
+      <div class="ns-grid-layout">
+        <main class="ns-form-column">
+          <section class="ns-card">
+            <h2 class="ns-card-title">
+              <i class="pi pi-user-edit text-primary"></i> Informações do Cliente
+            </h2>
 
-            <section class="ns-card">
-              <h2 class="ns-card-title">
-                <i class="pi pi-user-edit text-primary"></i> Editar Cliente
-              </h2>
+            <form [formGroup]="form" (ngSubmit)="atualizarCliente()">
 
-              <form [formGroup]="form" (ngSubmit)="atualizarCliente()">
-
-                <div class="ns-form-row">
-                  <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('nome')">
-                    <label>Nome *</label>
-                    <input type="text" formControlName="nome" class="ns-input" placeholder="Digite o nome completo">
-                    <div *ngIf="isInvalid('nome')" class="ns-error-message">
-                      O nome é obrigatório
-                    </div>
-                  </div>
-
-                  <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('email')">
-                    <label>E-mail *</label>
-                    <input type="email" formControlName="email" class="ns-input" placeholder="Digite o e-mail">
-                    <div *ngIf="isInvalid('email')" class="ns-error-message">
-                      O e-mail é obrigatório e deve ser válido
-                    </div>
+              <div class="ns-form-row">
+                <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('nome')">
+                  <label>Nome *</label>
+                  <input type="text" formControlName="nome" class="ns-input" placeholder="Digite o nome completo">
+                  <div *ngIf="isInvalid('nome')" class="ns-error-message">
+                    O nome é obrigatório
                   </div>
                 </div>
 
-                <div class="ns-form-row">
-                  <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('telefone')">
-                    <label>Telefone</label>
-                    <input type="tel" formControlName="telefone" class="ns-input" placeholder="(xx) xxxxx-xxxx">
+                <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('email')">
+                  <label>E-mail *</label>
+                  <input type="email" formControlName="email" class="ns-input" placeholder="Digite o e-mail">
+                  <div *ngIf="isInvalid('email')" class="ns-error-message">
+                    O e-mail é obrigatório e deve ser válido
                   </div>
-
-                  <div class="ns-form-group">
-                    <label>Empresa</label>
-                    <input type="text" formControlName="empresa" class="ns-input" placeholder="Nome da empresa">
-                  </div>
-                </div>
-
-                <div class="ns-form-row">
-                  <div class="ns-form-group">
-                    <label>Local</label>
-                    <input type="text" formControlName="local" class="ns-input" placeholder="Cidade, estado">
-                  </div>
-
-                  <div class="ns-form-group">
-                    <label>Avaliação</label>
-                    <input type="number" formControlName="avaliacao" class="ns-input" min="0" max="5" step="0.1" placeholder="0.0 a 5.0">
-                  </div>
-                </div>
-
-                <div class="ns-form-row">
-                  <div class="ns-form-group">
-                    <label>Serviços Ativos</label>
-                    <input type="number" formControlName="servicosAtivos" class="ns-input" min="0" placeholder="Número de serviços ativos">
-                  </div>
-
-                  <div class="ns-form-group">
-                    <label>Serviços Concluídos</label>
-                    <input type="number" formControlName="servicosConcluidos" class="ns-input" min="0" placeholder="Número de serviços concluídos">
-                  </div>
-                </div>
-
-                <div class="ns-form-row">
-                  <div class="ns-form-group">
-                    <label>Tipo de Cliente</label>
-                    <p-select formControlName="tipoCliente" [options]="tiposCliente" optionLabel="label" placeholder="Selecione o tipo" class="ns-select"></p-select>
-                  </div>
-
-                  <div class="ns-form-group">
-                    <label>Status</label>
-                    <p-select formControlName="status" [options]="statusOptions" optionLabel="label" placeholder="Selecione o status" class="ns-select"></p-select>
-                  </div>
-                </div>
-
-              </form>
-            </section>
-
-          </div>
-
-          <aside class="ns-summary-column">
-            <div class="ns-card ns-summary-card">
-              <h3>Resumo do Cliente</h3>
-
-              <div class="ns-summary-list">
-                <div class="ns-summary-item">
-                  <span class="label">Nome</span>
-                  <span class="value ns-truncate" [title]="form.get('nome')?.value">{{ form.get('nome')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">E-mail</span>
-                  <span class="value ns-truncate" [title]="form.get('email')?.value">{{ form.get('email')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">Telefone</span>
-                  <span class="value">{{ form.get('telefone')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">Empresa</span>
-                  <span class="value ns-truncate" [title]="form.get('empresa')?.value">{{ form.get('empresa')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">Local</span>
-                  <span class="value ns-truncate" [title]="form.get('local')?.value">{{ form.get('local')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">Avaliação</span>
-                  <span class="value">{{ form.get('avaliacao')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">Serviços Ativos</span>
-                  <span class="value">{{ form.get('servicosAtivos')?.value || '—' }}</span>
-                </div>
-                <div class="ns-summary-item">
-                  <span class="label">Serviços Concluídos</span>
-                  <span class="value">{{ form.get('servicosConcluidos')?.value || '—' }}</span>
                 </div>
               </div>
 
-              <div class="ns-summary-divider"></div>
+              <div class="ns-form-row">
+                <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('telefone')">
+                  <label>Telefone</label>
+                  <input type="tel" formControlName="telefone" class="ns-input" placeholder="(xx) xxxxx-xxxx">
+                </div>
 
-              <div class="ns-summary-actions">
-                <button type="button" class="ns-btn-submit" [disabled]="form.invalid" (click)="atualizarCliente()">
-                  Atualizar Cliente
-                </button>
-                <button type="button" routerLink="/painel/clientes" class="ns-btn-cancel">
-                  Cancelar
-                </button>
+                <div class="ns-form-group">
+                  <label>Empresa</label>
+                  <input type="text" formControlName="empresa" class="ns-input" placeholder="Nome da empresa">
+                </div>
+              </div>
+
+              <div class="ns-form-row">
+                <div class="ns-form-group">
+                  <label>Local</label>
+                  <p-autoComplete
+                      id="editLocal"
+                      formControlName="local"
+                      [suggestions]="filteredCidades"
+                      (completeMethod)="filterCidades($event)"
+                      field="label"
+                      placeholder="Ex: São Paulo - SP"
+                      inputStyleClass="ns-input"
+                      [styleClass]="isInvalid('local') ? 'ns-input-error' : ''"
+                      autocomplete="off"
+                    ></p-autoComplete>
+                </div>
+
+                <div class="ns-form-group">
+                  <label>Avaliação</label>
+                  <input type="number" formControlName="avaliacao" class="ns-input" min="0" max="5" step="0.1" placeholder="0.0 a 5.0">
+                </div>
+              </div>
+
+              <div class="ns-form-row">
+                <div class="ns-form-group">
+                  <label>Serviços Ativos</label>
+                  <input type="number" formControlName="servicosAtivos" class="ns-input" min="0" placeholder="Número de serviços ativos">
+                </div>
+
+                <div class="ns-form-group">
+                  <label>Serviços Concluídos</label>
+                  <input type="number" formControlName="servicosConcluidos" class="ns-input" min="0" placeholder="Número de serviços concluídos">
+                </div>
+              </div>
+
+              <div class="ns-form-row">
+                <div class="ns-form-group">
+                  <label>Tipo de Cliente</label>
+                  <p-select formControlName="tipoCliente" [options]="tiposCliente" optionLabel="label" placeholder="Selecione o tipo" class="ns-select"></p-select>
+                </div>
+
+                <div class="ns-form-group">
+                  <label>Status</label>
+                  <p-select formControlName="status" [options]="statusOptions" optionLabel="label" placeholder="Selecione o status" class="ns-select"></p-select>
+                </div>
+              </div>
+
+            </form>
+          </section>
+        </main>
+
+        <aside class="ns-summary-column">
+          <!-- ... Keep summary aside ... -->
+          <div class="ns-card ns-summary-card">
+            <h3>Resumo do Cliente</h3>
+
+            <div class="ns-summary-list">
+              <div class="ns-summary-item">
+                <span class="label">Nome</span>
+                <span class="value ns-truncate" [title]="form.get('nome')?.value">{{ form.get('nome')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">E-mail</span>
+                <span class="value ns-truncate" [title]="form.get('email')?.value">{{ form.get('email')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">Telefone</span>
+                <span class="value">{{ form.get('telefone')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">Empresa</span>
+                <span class="value ns-truncate" [title]="form.get('empresa')?.value">{{ form.get('empresa')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">Local</span>
+                <span class="value ns-truncate" [title]="form.get('local')?.value">{{ form.get('local')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">Avaliação</span>
+                <span class="value">{{ form.get('avaliacao')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">Serviços Ativos</span>
+                <span class="value">{{ form.get('servicosAtivos')?.value || '—' }}</span>
+              </div>
+              <div class="ns-summary-item">
+                <span class="label">Serviços Concluídos</span>
+                <span class="value">{{ form.get('servicosConcluidos')?.value || '—' }}</span>
               </div>
             </div>
-          </aside>
-        </div>
-      </main>
 
-      <p-toast position="bottom-right"></p-toast>
+            <div class="ns-summary-divider"></div>
+
+            <div class="ns-summary-actions">
+              <button type="button" class="ns-btn-submit" [disabled]="form.invalid" (click)="atualizarCliente()">
+                Atualizar Cliente
+              </button>
+              <button type="button" routerLink="/painel/clientes" class="ns-btn-cancel">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      
     </div>
   `,
   styles: [`
@@ -392,6 +410,11 @@ import { ClienteService } from '../../../services/cliente.service';
   `]
 })
 export class EditarCliente implements OnInit {
+  cidades: any[] = [];
+  filteredCidades: any[] = [];
+  private readonly http = inject(HttpClient);
+  
+  
   private fb = inject(FormBuilder);
   private clienteService = inject(ClienteService);
   private messageService = inject(MessageService);
@@ -415,9 +438,10 @@ export class EditarCliente implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.carregarCidades();
     this.form = this.fb.group({
       nome: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.email]],
       telefone: [''],
       empresa: [''],
       local: [''],
@@ -430,10 +454,19 @@ export class EditarCliente implements OnInit {
 
     // Get client email from route parameters
     this.route.paramMap.subscribe(params => {
-      this.clienteEmail = params.get('email') || '';
-      if (this.clienteEmail) {
-        this.carregarClienteParaEdicao(this.clienteEmail);
+      const emailParam = params.get('email');
+      if (!emailParam || emailParam.toLowerCase() === 'null') {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Email do cliente inválido. Por favor, selecione um cliente válido para editar.'
+        });
+        // Redirect to the client list
+        setTimeout(() => this.router.navigate(['/painel/clientes']), 1000);
+        return;
       }
+      this.clienteEmail = emailParam;
+      this.carregarClienteParaEdicao(this.clienteEmail);
     });
   }
 
@@ -455,7 +488,7 @@ export class EditarCliente implements OnInit {
           email: cliente.email,
           telefone: cliente.telefone,
           empresa: cliente.empresa,
-          local: cliente.local,
+          local: cliente.local ? { label: cliente.local, value: cliente.local } : null,
           avaliacao: cliente.avaliacao,
           servicosAtivos: cliente.servicosAtivos,
           servicosConcluidos: cliente.servicosConcluidos,
@@ -463,7 +496,7 @@ export class EditarCliente implements OnInit {
           status: this.statusOptions.find(s => s.value === cliente.status) || null
         });
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Erro ao carregar cliente para edição', err);
         this.messageService.add({
           severity: 'error',
@@ -480,9 +513,12 @@ export class EditarCliente implements OnInit {
     if (this.form.valid) {
       // Map form values to Cliente interface
       const formValue = this.form.value;
+      if (formValue.local && typeof formValue.local === "object") {
+        formValue.local = (formValue.local as any).value;
+      }
 
       const cliente: Cliente = {
-        email: this.clienteEmail, // Mantemos o email original (usado como ID)
+        email: formValue.email, // Usamos o email do form
         nome: formValue.nome,
         empresa: formValue.empresa,
         avaliacao: formValue.avaliacao,
@@ -495,8 +531,8 @@ export class EditarCliente implements OnInit {
       };
 
       // Call the service to update the cliente
-      this.clienteService.updateCliente(cliente).subscribe({
-        next: (response) => {
+      this.clienteService.updateCliente(cliente, this.clienteEmail).subscribe({
+        next: (_) => {
           // Show success message
           this.messageService.add({
             severity: 'success',
@@ -506,7 +542,7 @@ export class EditarCliente implements OnInit {
           // Navigate to clientes list page
           setTimeout(() => this.router.navigate(['/painel/clientes']), 1000);
         },
-        error: (err) => {
+        error: (err: any) => {
           // Log error for debugging (acceptable use of console.error)
           console.error('Erro ao atualizar cliente', err);
           // Show error message to user
@@ -527,4 +563,52 @@ export class EditarCliente implements OnInit {
       });
     }
   }
-}
+
+  carregarCidades() {
+    this.http.get<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/municipios')
+      .pipe(timeout(20000))
+      .subscribe({
+        next: (data: any[]) => {
+          this.cidades = data
+            .filter((municipio: any) => municipio.microrregiao)
+            .map((municipio: any) => {
+              const estadoSigla = municipio.microrregiao?.mesorregiao?.UF?.sigla ?? '';
+              const label = estadoSigla
+                ? `${municipio.nome} - ${estadoSigla}`
+                : municipio.nome;
+              return { label, value: label };
+            });
+          this.filteredCidades = this.cidades.slice(0, 20);
+        },
+        error: (err: any) => {
+          this.cidades = [
+            { label: 'São Paulo - SP', value: 'São Paulo - SP' },
+            { label: 'Rio de Janeiro - RJ', value: 'Rio de Janeiro - RJ' },
+            { label: 'Belo Horizonte - MG', value: 'Belo Horizonte - MG' },
+            { label: 'Brasília - DF', value: 'Brasília - DF' },
+            { label: 'Salvador - BA', value: 'Salvador - BA' },
+            { label: 'Fortaleza - CE', value: 'Fortaleza - CE' },
+            { label: 'Curitiba - PR', value: 'Curitiba - PR' }
+          ];
+          this.filteredCidades = this.cidades.slice();
+        }
+      });
+  }
+
+  filterCidades(event: any): void {
+    const query = event.query;
+    this.filteredCidades = this.filterCidade(query, this.cidades);
+  }
+
+  filterCidade(query: string, cidades: any[]): any[] {
+    const filtered: any[] = [];
+    const lowerQuery = query.toLowerCase();
+    for (let i = 0; i < cidades.length; i++) {
+      const cidade = cidades[i];
+      if (cidade.label.toLowerCase().indexOf(lowerQuery) === 0) {
+        filtered.push(cidade);
+      }
+    }
+    return filtered;
+  }
+  }

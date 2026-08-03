@@ -16,6 +16,7 @@ class ModeloUsuario(Base):
     senha_hash = Column(String(255), nullable=True) 
     tipo_perfil = Column(Enum(TipoPerfil), nullable=False)
     ativo = Column(Boolean, default=True)
-    
+    auth0_id = Column(String(255), unique=True, nullable=True, index=True)
+
     cliente = relationship("ModeloCliente", back_populates="usuario", uselist=False, cascade="all, delete-orphan")
     profissional = relationship("ModeloProfissional", back_populates="usuario", uselist=False, cascade="all, delete-orphan")

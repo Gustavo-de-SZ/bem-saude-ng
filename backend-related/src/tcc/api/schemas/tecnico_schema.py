@@ -2,10 +2,11 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
-class TecnicCreateRequest(BaseModel):
-    email: EmailStr
-    nome: str  # will be used as nome_fantasia
+class TecnicoCreateRequest(BaseModel):
+    email: Optional[EmailStr] = None  # will be used as nome_fantasia
+    nome: Optional[str] = None  # will that
     # optional fields that may be provided later
+    cnpj: Optional[str] = None
     cpf: Optional[str] = None
     telefone: Optional[str] = None
     descricao_servicos: Optional[str] = None
@@ -20,8 +21,9 @@ class TecnicCreateRequest(BaseModel):
         extra = 'ignore'
 
 
-class TecnicUpdateRequest(BaseModel):
+class TecnicoUpdateRequest(BaseModel):
     nome: Optional[str] = None  # will be used as nome_fantasia
+    cnpj: Optional[str] = None
     cpf: Optional[str] = None
     telefone: Optional[str] = None
     descricao_servicos: Optional[str] = None
@@ -34,10 +36,11 @@ class TecnicUpdateRequest(BaseModel):
         extra = 'ignore'
 
 
-class TecnicResponse(BaseModel):
+class TecnicoResponse(BaseModel):
     id: int
     usuario_id: int
     nome_fantasia: str
+    cnpj: Optional[str] = None
     cpf: Optional[str] = None
     telefone: Optional[str] = None
     descricao_servicos: Optional[str] = None

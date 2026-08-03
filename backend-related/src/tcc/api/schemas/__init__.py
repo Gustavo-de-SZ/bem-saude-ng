@@ -7,3 +7,4 @@ from .chamado_schema import ChamadoCreate, ChamadoResponse, ChamadoFrontendRespo
 from .cliente_schema import ClienteCriarRequest, ClienteResponse
 from .profissional_schema import ProfissionalCriarRequest, ProfissionalResponse
 from .usuario_schema import UsuarioCriarRequest, UsuarioAlterarRequest, UsuarioResponse, TipoPerfil
+from .equipamento_schema import EquipamentoCreate, EquipamentoResponse, EquipamentoUpdate

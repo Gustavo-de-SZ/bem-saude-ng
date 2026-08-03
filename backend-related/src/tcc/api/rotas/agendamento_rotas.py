@@ -7,6 +7,7 @@ from src.tcc.infraestrutura.banco_dados.conexao import obter_sessao
 from src.tcc.infraestrutura.repositorios.agendamento_repositorio import RepositorioAgendamento
 from src.tcc.infraestrutura.banco_dados.modelos.modelo_agendamento import ModeloAgendamento
 from src.tcc.api.schemas.agendamento_schema import AgendamentoResponse, AgendamentoUpdate, AgendamentoCreate
+from src.tcc.api.auth import get_professional_user
 
 router = APIRouter(
     prefix="/agendamentos",
@@ -17,11 +18,14 @@ router = APIRouter(
     "",
     response_model=List[AgendamentoResponse],
     status_code=status.HTTP_200_OK,
-    summary="Listar todos os agendamentos"
+    summary="Listar meus agendamentos"
 )
-def listar_agendamentos(session: Session = Depends(obter_sessao)):
+def listar_agendamentos(
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamentos = repositorio.listar_todos()
+    agendamentos = repositorio.listar_por_usuario(current_user.id)
 
     # Map to frontend-expected format
     return [
@@ -47,7 +51,11 @@ def listar_agendamentos(session: Session = Depends(obter_sessao)):
     status_code=status.HTTP_201_CREATED,
     summary="Criar novo agendamento"
 )
-def criar_agendamento(agendamento: AgendamentoCreate, session: Session = Depends(obter_sessao)):
+def criar_agendamento(
+    agendamento: AgendamentoCreate,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
     # Convert Pydantic model to SQLAlchemy model
     db_agendamento = ModeloAgendamento(
@@ -59,7 +67,8 @@ def criar_agendamento(agendamento: AgendamentoCreate, session: Session = Depends
         cliente=agendamento.cliente,
         status=agendamento.status,
         duracao=agendamento.duracao,
-        tipo=agendamento.tipo
+        tipo=agendamento.tipo,
+        usuario_id=current_user.id
     )
     created_agendamento = repositorio.create(db_agendamento)
     return AgendamentoResponse(
@@ -80,11 +89,15 @@ def criar_agendamento(agendamento: AgendamentoCreate, session: Session = Depends
     "/{agendamento_id}",
     response_model=AgendamentoResponse,
     status_code=status.HTTP_200_OK,
-    summary="Obter agendamento por ID"
+    summary="Obter meu agendamento por ID"
 )
-def obter_agendamento_por_id(agendamento_id: int, session: Session = Depends(obter_sessao)):
+def obter_agendamento_por_id(
+    agendamento_id: int,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamento = repositorio.get_by_id(agendamento_id)
+    agendamento = repositorio.get_by_id_e_usuario(agendamento_id, current_user.id)
     if agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado")
     return AgendamentoResponse(
@@ -107,9 +120,13 @@ def obter_agendamento_por_id(agendamento_id: int, session: Session = Depends(obt
     status_code=status.HTTP_200_OK,
     summary="Obter agendamento por cliente"
 )
-def obter_agendamento_por_cliente(cliente: str, session: Session = Depends(obter_sessao)):
+def obter_agendamento_por_cliente(
+    cliente: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamento = repositorio.get_by_cliente(cliente)
+    agendamento = repositorio.get_by_cliente_e_usuario(cliente, current_user.id)
     if agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado")
     return AgendamentoResponse(
@@ -130,11 +147,15 @@ def obter_agendamento_por_cliente(cliente: str, session: Session = Depends(obter
     "/dia/{dia}",
     response_model=List[AgendamentoResponse],
     status_code=status.HTTP_200_OK,
-    summary="Obter agendamentos por dia"
+    summary="Obter meus agendamentos por dia"
 )
-def obter_agendamentos_por_dia(dia: str, session: Session = Depends(obter_sessao)):
+def obter_agendamentos_por_dia(
+    dia: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamentos = repositorio.get_by_dia(dia)
+    agendamentos = repositorio.get_by_dia_e_usuario(dia, current_user.id)
     return [
         AgendamentoResponse(
             id=str(agendamento.id),
@@ -156,11 +177,15 @@ def obter_agendamentos_por_dia(dia: str, session: Session = Depends(obter_sessao
     "/mes/{mes}",
     response_model=List[AgendamentoResponse],
     status_code=status.HTTP_200_OK,
-    summary="Obter agendamentos por mês"
+    summary="Obter meus agendamentos por mês"
 )
-def obter_agendamentos_por_mes(mes: str, session: Session = Depends(obter_sessao)):
+def obter_agendamentos_por_mes(
+    mes: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamentos = repositorio.get_by_mes(mes)
+    agendamentos = repositorio.get_by_mes_e_usuario(mes, current_user.id)
     return [
         AgendamentoResponse(
             id=str(agendamento.id),
@@ -182,11 +207,15 @@ def obter_agendamentos_por_mes(mes: str, session: Session = Depends(obter_sessao
     "/search",
     response_model=List[AgendamentoResponse],
     status_code=status.HTTP_200_OK,
-    summary="Buscar agendamentos por termo (título, cliente, empresa ou serviço)"
+    summary="Buscar meus agendamentos por termo (título, cliente, empresa ou serviço)"
 )
-def buscar_agendamentos(term: str, session: Session = Depends(obter_sessao)):
+def buscar_agendamentos(
+    term: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamentos = repositorio.search(term)
+    agendamentos = repositorio.search_e_usuario(term, current_user.id)
     return [
         AgendamentoResponse(
             id=str(agendamento.id),
@@ -208,21 +237,18 @@ def buscar_agendamentos(term: str, session: Session = Depends(obter_sessao)):
     "/{agendamento_id}",
     response_model=AgendamentoResponse,
     status_code=status.HTTP_200_OK,
-    summary="Atualizar agendamento"
+    summary="Atualizar meu agendamento"
 )
-def atualizar_agendamento(agendamento_id: int, agendamento_update: AgendamentoUpdate, session: Session = Depends(obter_sessao)):
+def atualizar_agendamento(
+    agendamento_id: int,
+    agendamento_update: AgendamentoUpdate,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    agendamento = repositorio.get_by_id(agendamento_id)
+    agendamento = repositorio.update(agendamento_id, current_user.id, **agendamento_update.model_dump(exclude_unset=True))
     if agendamento is None:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado")
-
-    # Update only the fields that are provided (not None)
-    update_data = agendamento_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(agendamento, key, value)
-
-    session.commit()
-    session.refresh(agendamento)
     return AgendamentoResponse(
         id=str(agendamento.id),
         mes=agendamento.mes,
@@ -240,11 +266,15 @@ def atualizar_agendamento(agendamento_id: int, agendamento_update: AgendamentoUp
 @router.delete(
     "/{agendamento_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Excluir agendamento"
+    summary="Excluir meu agendamento"
 )
-def excluir_agendamento(agendamento_id: int, session: Session = Depends(obter_sessao)):
+def excluir_agendamento(
+    agendamento_id: int,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioAgendamento(session)
-    sucesso = repositorio.delete(agendamento_id)
+    sucesso = repositorio.delete(agendamento_id, current_user.id)
     if not sucesso:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado")
     return None

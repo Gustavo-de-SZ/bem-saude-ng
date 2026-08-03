@@ -1,18 +1,19 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription, interval } from 'rxjs';
+import { NotificacaoService, Notificacao } from '../../../services/notificacao.service';
+import { RouterModule } from '@angular/router';
 import { inject } from '@angular/core';
+import { ProfileService } from '../../../services/profile.service';
 import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-topbar-cliente',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   template: `
     <header class="tcc-topbar">
-      <div class="tcc-search-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" placeholder="Buscar profissionais ou serviços...">
-      </div>
+      
 
       <div class="tcc-topbar-actions">
         <button class="tcc-icon-btn" (click)="toggleTheme()">
@@ -47,7 +48,7 @@ import { AuthService } from '../../../services/auth.service';
     .tcc-topbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       padding: 16px 0;
       background-color: transparent;
       width: 100%;
@@ -170,7 +171,11 @@ import { AuthService } from '../../../services/auth.service';
     .tcc-profile-arrow { font-size: 12px; color: var(--tcc-text-muted, #94a3b8); }
   `]
 })
-export class TopbarCliente {
+export class TopbarCliente implements OnInit, OnDestroy {
+  private notificacaoService = inject(NotificacaoService);
+  notificacoes: Notificacao[] = [];
+  naoLidasCount = 0;
+  private notifSub?: Subscription;
   isDarkMode = false;
   notificationCount = 0;
   userName = '';
@@ -183,13 +188,39 @@ export class TopbarCliente {
       next: (user: any) => {
         if (user) {
           // O Auth0 costuma usar 'name' ou 'given_name'
-          this.userName = user.name || user.given_name || 'Usuário';
+          this.userName = user.nickname || user.given_name || (user.name?.includes('@') ? user.name.split('@')[0] : user.name) || 'Usuário';
         }
       },
       error: (err: any) => {
         console.error('Erro ao carregar perfil do Auth0', err);
       }
     });
+  }
+
+  
+  ngOnInit() {
+    this.loadNotificacoes();
+    this.notifSub = interval(30000).subscribe(() => this.loadNotificacoes());
+  }
+  
+  loadNotificacoes() {
+    this.notificacaoService.getNotificacoes().subscribe(notifs => {
+      this.notificacoes = notifs;
+      this.naoLidasCount = notifs.filter(n => !n.lida).length;
+      
+    });
+  }
+
+  marcarComoLidas() {
+    this.notificacaoService.marcarLidas().subscribe(() => {
+      this.naoLidasCount = 0;
+      
+      this.notificacoes.forEach(n => n.lida = true);
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.notifSub) this.notifSub.unsubscribe();
   }
 
   toggleTheme() {

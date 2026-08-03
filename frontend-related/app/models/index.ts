@@ -3,7 +3,6 @@ export * from './chamado';
 export * from './cliente';
 export * from './equipamento';
 export * from './nav-item';
-export * from './paciente.model';
 export * from './profissional';
 export * from './servico';
 export * from './solicitacao';

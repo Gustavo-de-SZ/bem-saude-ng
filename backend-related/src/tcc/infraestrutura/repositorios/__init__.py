@@ -8,3 +8,4 @@ from .cliente_repositorio import RepositorioCliente
 from .favorito_repositorio import RepositorioFavorito
 from .profissional_repositorio import RepositorioProfissional
 from .usuario_repositorio import RepositorioUsuario
+from .equipamento_repositorio import RepositorioEquipamento

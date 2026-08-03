@@ -1,27 +1,24 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-servicos-search',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="tcc-search-toolbar">
       <div class="tcc-search-input">
         <i class="pi pi-search"></i>
-        <input type="text" placeholder="Buscar por serviço ou cliente...">
+        <input type="text" placeholder="Buscar por serviço ou cliente..." [formControl]="searchControl">
       </div>
 
-      <div class="tcc-date-input">
-        <i class="pi pi-calendar"></i>
-        <input type="text" placeholder="mm/dd/yyyy">
-      </div>
-
-      <select class="tcc-select-input">
-        <option>Todas categorias</option>
-        <option>Manutenção</option>
-        <option>Redes</option>
-        <option>Software</option>
+      <select class="tcc-select-input" [formControl]="categoryControl">
+        <option value="">Todas categorias</option>
+        <option value="manutencao">Manutenção</option>
+        <option value="redes">Redes</option>
+        <option value="hardware">Hardware</option>
+        <option value="software">Software</option>
       </select>
     </div>
   `,
@@ -47,4 +44,15 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class ServicosSearchComponent {}
+export class ServicosSearchComponent {
+  searchControl = new FormControl('');
+  categoryControl = new FormControl('');
+
+  @Output() searchChange = new EventEmitter<string>();
+  @Output() categoryChange = new EventEmitter<string>();
+
+  constructor() {
+    this.searchControl.valueChanges.subscribe(value => this.searchChange.emit(value || ''));
+    this.categoryControl.valueChanges.subscribe(value => this.categoryChange.emit(value || ''));
+  }
+}

@@ -23,10 +23,10 @@ export class EquipamentoService {
     );
   }
 
-  addEquipamento(equipamento: Equipamento): Observable<Equipamento> {
+  addEquipamento(equipamento: Equipamento, clienteId: string): Observable<Equipamento> {
     return this.auth.getToken().pipe(
       switchMap(token => this.http.post<Equipamento>(
-        `${this.configService.getApiUrl()}/equipamentos`,
+        `${this.configService.getApiUrl()}/clientes/${clienteId}/equipamentos`,
         equipamento,
         { headers: { Authorization: `Bearer ${token}` } }
       ))

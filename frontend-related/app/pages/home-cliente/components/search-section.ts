@@ -1,5 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MessageService } from 'primeng/api';
+import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-search-section',
@@ -9,12 +11,12 @@ import { CommonModule } from '@angular/common';
     <div class="tcc-search-section">
       <div class="tcc-input-base" style="width: 100%; max-width: 650px;">
         <i class="pi pi-search"></i>
-        <input type="text" placeholder="Buscar por serviço ou especialidade...">
+        <input type="text" placeholder="Buscar por serviço ou especialidade..." (keyup.enter)="onSearch()">
       </div>
 
       <div class="tcc-categories-row">
         @for (categoria of categorias; track categoria) {
-          <button class="tcc-pill-base">
+          <button class="tcc-pill-base" (click)="onSearch()">
             <i class="pi" [ngClass]="getIconForCategory(categoria)"></i>
             {{ categoria }}
           </button>
@@ -62,7 +64,12 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class SearchSectionComponent {
-  @Input() categorias: string[] = [
+  private messageService = inject(MessageService);
+  
+  onSearch(): void {
+    this.messageService.add({severity:'info', summary:'Busca', detail:'Funcionalidade de busca em desenvolvimento'});
+  }
+  private _categorias: string[] = [
     'Redes',
     'Hardware',
     'Software',
@@ -70,6 +77,17 @@ export class SearchSectionComponent {
     'Impressoras',
     'Dispositivos'
   ];
+
+  @Input()
+  set categorias(value: string[]) {
+    if (value && value.length > 0) {
+      this._categorias = value;
+    }
+  }
+  get categorias(): string[] {
+    return this._categorias;
+  }
+  
 
   getIconForCategory(categoria: string): string {
     const iconMap: { [key: string]: string } = {

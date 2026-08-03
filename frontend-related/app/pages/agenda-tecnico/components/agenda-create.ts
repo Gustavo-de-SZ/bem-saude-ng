@@ -34,7 +34,7 @@ interface TipoAtendimentoCard {
     DatePickerModule,
     ToastModule
   ],
-  providers: [MessageService],
+  
   template: `
     <div class="ns-page-container">
       
@@ -277,7 +277,7 @@ interface TipoAtendimentoCard {
 
       </div>
     </div>
-    <p-toast position="bottom-right"></p-toast>
+    
   `,
   styles: [`
   

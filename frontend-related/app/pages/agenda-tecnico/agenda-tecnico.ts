@@ -4,8 +4,9 @@ import { RouterModule } from '@angular/router';
 import { AgendaFilters } from './components/agenda-filters';
 import { AgendaSearch } from './components/agenda-search';
 import { AgendaList } from './components/agenda-list';
-import { Agendamento } from '../../shared/models';
+import { Agendamento, StatusAgendamento, TipoAgendamento } from '../../models/agendamento';
 import { AgendaService } from '../../services/agenda.service';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-agenda-tecnico',
@@ -16,7 +17,8 @@ import { AgendaService } from '../../services/agenda.service';
     AgendaFilters,
     AgendaSearch,
     AgendaList
-    ],
+  ],
+  
   template: `
     <div class="tcc-page-wrapper tcc-fade-in">
       <header class="tcc-page-header">
@@ -30,14 +32,14 @@ import { AgendaService } from '../../services/agenda.service';
         </button>
       </header>
 
-      <app-agenda-filters [compromissos]="compromissos"></app-agenda-filters>
-      <app-agenda-search></app-agenda-search>
-      <app-agenda-list [compromissos]="compromissos"></app-agenda-list>
+      <app-agenda-filters [compromissos]="compromissos" (filterChange)="onFilterChange($event)"></app-agenda-filters>
+      <app-agenda-search (searchChange)="onSearchChange($event)" (typeChange)="onTypeChange($event)"></app-agenda-search>
+      <app-agenda-list [compromissos]="filteredCompromissos"></app-agenda-list>
     </div>
   `,
   styles: [`
     .tcc-page-wrapper { display: flex; flex-direction: column; gap: 24px; padding: 0; }
-    
+
     .tcc-page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
     .tcc-header-title-group { display: flex; flex-direction: column; }
     .tcc-title-lg { font-size: 28px; font-weight: 700; color: var(--tcc-text-main, #0f172a); margin: 0 0 6px 0; }
@@ -61,16 +63,62 @@ import { AgendaService } from '../../services/agenda.service';
 })
 export class AgendaTecnico {
   compromissos: Agendamento[] = [];
+  filteredCompromissos: Agendamento[] = [];
+  selectedFilter: string = 'Todos';
+  searchTerm: string = '';
+  typeFilter: string = '';
 
-  constructor(private agendaService: AgendaService) {
+  constructor(private agendaService: AgendaService, private messageService: MessageService) {
     this.agendaService.getAgendamentos().subscribe({
       next: (agendamentos) => {
         this.compromissos = agendamentos;
+        this.filteredCompromissos = agendamentos;
       },
       error: (err) => {
         console.error('Erro ao carregar agendamentos', err);
         this.compromissos = [];
+        this.filteredCompromissos = [];
       }
     });
+  }
+
+  onFilterChange(filter: string): void {
+    this.selectedFilter = filter;
+    this.applyFilters();
+  }
+
+  onSearchChange(term: string): void {
+    this.searchTerm = term;
+    this.applyFilters();
+  }
+
+  onTypeChange(type: string): void {
+    this.typeFilter = type;
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    let result = [...this.compromissos];
+
+    // Filter by status (selectedFilter)
+    if (this.selectedFilter !== 'Todos') {
+      result = result.filter(compromisso => compromisso.status === this.selectedFilter);
+    }
+
+    // Filter by search term (title or client name)
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      result = result.filter(compromisso =>
+        (compromisso.titulo?.toLowerCase().includes(term) ?? false) ||
+        (compromisso.cliente?.toLowerCase().includes(term) ?? false)
+      );
+    }
+
+    // Filter by type
+    if (this.typeFilter) {
+      result = result.filter(compromisso => compromisso.tipo === this.typeFilter);
+    }
+
+    this.filteredCompromissos = result;
   }
 }

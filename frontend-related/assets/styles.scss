@@ -342,3 +342,24 @@ body.tp-dark-theme {
     color: #f1f5f9 !important;
   }
 }
+
+/* Print styles - Hide UI elements when printing */
+@media print {
+  /* Hide the sidebar, topnav, and action buttons */
+  .tcc-sidebar, .tcc-navbar, .tcc-btn-outline, .icon-btn, p-toast {
+    display: none !important;
+  }
+
+  /* Ensure the main content takes up the full page */
+  .ns-page-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* Expand cards to look like a document */
+  .ns-card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

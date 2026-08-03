@@ -13,12 +13,12 @@ import { ClienteService, ClientesStats } from '../../../services/cliente.service
         <span class="tcc-stat-value text-blue">{{ stats?.total }}</span>
       </div>
       <div class="tcc-stat-box">
-        <span class="tcc-stat-label">Ativos Este Mês</span>
-        <span class="tcc-stat-value text-green">{{ stats?.ativosEsteMes }}</span>
+        <span class="tcc-stat-label">Clientes Ativos</span>
+        <span class="tcc-stat-value text-green">{{ stats?.ativos }}</span>
       </div>
       <div class="tcc-stat-box">
-        <span class="tcc-stat-label">Novos Este Mês</span>
-        <span class="tcc-stat-value text-purple">{{ stats?.novosEsteMes }}</span>
+        <span class="tcc-stat-label">Clientes Inativos</span>
+        <span class="tcc-stat-value text-purple">{{ stats?.inativos }}</span>
       </div>
     </div>
   `,
@@ -64,8 +64,8 @@ export class ClientesStatsComponent implements OnInit {
         // Fallback to some default values to avoid breaking the UI
         this.stats = {
           total: 0,
-          ativosEsteMes: 0,
-          novosEsteMes: 0
+          ativos: 0,
+          inativos: 0
         };
       }
     });

@@ -7,9 +7,9 @@ class ModeloProfissional(ModeloBase):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, unique=True)
-    
+
     nome_fantasia = Column(String(255), nullable=True)
-    cpf = Column(String(20), unique=True, nullable=True)
+    cnpj = Column(String(20), unique=True, nullable=True)
     telefone = Column(String(20), nullable=True)
     descricao_servicos = Column(Text, nullable=True)
     aprovado_pelo_admin = Column(Boolean, default=False)
@@ -23,5 +23,7 @@ class ModeloProfissional(ModeloBase):
     #     back_populates="favoritos_profissionais"
     # )
     # favoritos_del = relationship("ModeloFavorito", back_populates="profissional")
+    # Relationship for clients served by this professional
+    clientes = relationship("ModeloCliente", secondary="cliente_tecnico", back_populates="profissionais")
     chamados = relationship("ModeloChamado", back_populates="profissional")
    # itens_inventario = relationship("ModeloInventario", back_populates="profissional")

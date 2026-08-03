@@ -1,10 +1,13 @@
 import { Component, OnInit, OnDestroy, inject, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ChatService, Mensagem } from '../../services/chat.service';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap, startWith, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { Subject, interval, of } from 'rxjs';
+import { takeUntil, switchMap, startWith, catchError, first } from 'rxjs/operators';
+import { AuthService } from '../../services/auth.service';
+import { SolicitacaoService } from '../../services/solicitacao.service';
+import { Solicitacao } from '../../models/solicitacao';
 
 @Component({
   selector: 'app-chat',
@@ -16,13 +19,30 @@ import { of } from 'rxjs';
       <!-- Header -->
       <div style="padding: 16px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px;">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
-          AT
+          {{ destinatarioIniciais }}
         </div>
         <div>
-          <h3 style="margin: 0; font-size: 16px; color: #0f172a;">Suporte Técnico</h3>
+          <h3 style="margin: 0; font-size: 16px; color: #0f172a;">{{ destinatario }}</h3>
           <span style="font-size: 12px; color: #10b981;">● Online</span>
         </div>
       </div>
+
+      
+      <!-- Ticket Details -->
+      @if (ticketDetalhes) {
+          <div style="padding: 16px; background: #eff6ff; border-bottom: 1px solid #bfdbfe; font-size: 14px; color: #1e3a8a;">
+              <strong>Problema Relatado:</strong> {{ ticketDetalhes.titulo }}<br/>
+              <span style="opacity: 0.8; font-size: 13px;">{{ ticketDetalhes.descricao_problema }}</span>
+              
+              @if (ticketDetalhes.anexo) {
+                  <div style="margin-top: 12px;">
+                      <a [href]="ticketDetalhes.anexo" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid #bfdbfe; border-radius: 6px; color: #2563eb; text-decoration: none; font-weight: 500; font-size: 12px;">
+                          <i class="pi pi-image"></i> Ver Anexo
+                      </a>
+                  </div>
+              }
+          </div>
+      }
 
       <!-- Messages Area -->
       <div #scrollContainer style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
@@ -59,27 +79,69 @@ import { of } from 'rxjs';
 })
 export class ChatComponent implements OnInit, OnDestroy {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
-
   private chatService = inject(ChatService);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
   private destroy$ = new Subject<void>();
+  
+  ticketId = 'GLOBAL-CHAT';
+  meuUsuarioId = 'meu-id';
+  meuNome = 'Você';
+  role = 'cliente';
+  destinatario = 'Suporte Técnico';
+  destinatarioIniciais = 'AT';
 
-  ticketId = 'TICKET-123'; // TODO: Get this from route params
-  meuUsuarioId = 'meu-id'; // TODO: Get this from AuthService
-
+  ticketDetalhes: Solicitacao | null = null;
+  private solicitacaoService = inject(SolicitacaoService);
   mensagens: Mensagem[] = [];
   novaMensagem = '';
 
+
+
+
   ngOnInit() {
-    // POLLING MECHANISM: Fetch every 3 seconds
+    this.route.paramMap.pipe(first()).subscribe(params => {
+        const id = params.get('id');
+        
+        if (id) {
+            this.ticketId = id;
+            if (id !== 'GLOBAL-CHAT') {
+               this.solicitacaoService.getSolicitacao(id).pipe(catchError(() => of(null))).subscribe(t => {
+                   this.ticketDetalhes = t;
+               });
+            }
+        }
+
+    });
+    
+    this.authService.user$.pipe(first()).subscribe(user => {
+        if (user) {
+            this.meuUsuarioId = user.sub || 'meu-id';
+            this.meuNome = user.nickname || user.given_name || (user.name?.includes('@') ? user.name.split('@')[0] : user.name) || 'Você';
+            const roles = user['https://tcc-ng.com/roles'] || [];
+            this.role = roles.length > 0 ? roles[0] : 'tecnico';
+            
+            if (this.role === 'tecnico') {
+                this.destinatario = 'Cliente (Suporte)';
+                this.destinatarioIniciais = 'CL';
+                this.chatService.setRole('tecnico');
+            } else {
+                this.destinatario = 'Suporte Técnico';
+                this.destinatarioIniciais = 'AT';
+                this.chatService.setRole('cliente');
+            }
+        }
+    });
+
     interval(3000).pipe(
-      startWith(0), // Trigger immediately on load
+      startWith(0),
       switchMap(() => this.chatService.getMensagens(this.ticketId).pipe(
         catchError(err => {
           console.error('Chat polling error', err);
-          return of([]); // Don't break the loop on error
+          return of([]);
         })
       )),
-      takeUntil(this.destroy$) // Prevent memory leaks on destroy
+      takeUntil(this.destroy$)
     ).subscribe(msgs => {
       const isNewMessage = msgs.length > this.mensagens.length;
       this.mensagens = msgs;
@@ -91,12 +153,10 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   enviar() {
     if (!this.novaMensagem.trim()) return;
-
     const texto = this.novaMensagem;
-    this.novaMensagem = ''; // Clear input immediately for UX
+    this.novaMensagem = '';
 
-    this.chatService.enviarMensagem(this.ticketId, texto).subscribe(novaMsg => {
-      // Optimistically push to array so user sees it instantly before next poll
+    this.chatService.enviarMensagemRole(this.ticketId, texto, this.meuUsuarioId, this.meuNome).subscribe(novaMsg => {
       this.mensagens.push(novaMsg);
       setTimeout(() => this.scrollToBottom(), 100);
     });
@@ -115,7 +175,6 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Critical: Stop the polling interval when leaving the page
     this.destroy$.next();
     this.destroy$.complete();
   }

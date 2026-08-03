@@ -1,6 +1,8 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { errorInterceptor } from './interceptors/error.interceptor';
 import { provideAuth0, authHttpInterceptorFn, AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { provideAnimations } from '@angular/platform-browser/animations';
 // Configuração do PrimeNG v18
@@ -47,10 +49,11 @@ const processedAuth0Providers = (Array.isArray(auth0ProvidersRaw) ? auth0Provide
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    MessageService,
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     
-    provideHttpClient(withInterceptors([authHttpInterceptorFn])),
+    provideHttpClient(withInterceptors([authHttpInterceptorFn, errorInterceptor])),
     { provide: Auth0Service, useExisting: CustomAuthService },
     provideAnimations(), // OBRIGATÓRIO para os painéis flutuantes não quebrarem
     providePrimeNG({

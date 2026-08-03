@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Servico } from '../../../models/servico';
 
@@ -8,11 +8,11 @@ import { Servico } from '../../../models/servico';
   imports: [CommonModule],
   template: `
     <div class="tcc-filters-pills">
-      <button class="tcc-pill active">Todos ({{ servicos.length }})</button>
-      <button class="tcc-pill">Em Andamento ({{ countStatus('Em Andamento') }})</button>
-      <button class="tcc-pill">Pendente ({{ countStatus('Pendente') }})</button>
-      <button class="tcc-pill">Concluído ({{ countStatus('Concluído') }})</button>
-      <button class="tcc-pill">Cancelado ({{ countStatus('Cancelado') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Todos'" (click)="selectFilter('Todos')">Todos ({{ servicos.length }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Em Andamento'" (click)="selectFilter('Em Andamento')">Em Andamento ({{ countStatus('Em Andamento') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Pendente'" (click)="selectFilter('Pendente')">Pendente ({{ countStatus('Pendente') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Concluído'" (click)="selectFilter('Concluído')">Concluído ({{ countStatus('Concluído') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Cancelado'" (click)="selectFilter('Cancelado')">Cancelado ({{ countStatus('Cancelado') }})</button>
     </div>
   `,
   styles: [`
@@ -44,8 +44,14 @@ import { Servico } from '../../../models/servico';
 })
 export class ServicosFiltersComponent {
   @Input() servicos: Servico[] = [];
+  @Output() filterChange = new EventEmitter<string>();
 
-  countStatus(status: string): number {
-    return this.servicos.filter(s => s.status === status).length;
+  selectedFilter: string = 'Todos';
+
+  countStatus(status: string) { return this.servicos.filter(s => s.status === status).length; }
+
+  selectFilter(filter: string) {
+    this.selectedFilter = filter;
+    this.filterChange.emit(filter);
   }
 }

@@ -5,6 +5,9 @@ import { Router, RouterModule } from '@angular/router';
 
 
 import { InputMaskModule } from 'primeng/inputmask';
+import { AutoCompleteModule } from 'primeng/autocomplete';
+import { HttpClient } from '@angular/common/http';
+import { timeout, TimeoutError } from 'rxjs';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 
@@ -20,9 +23,10 @@ import { Cliente } from '../../../models/cliente';
     ReactiveFormsModule,
     RouterModule,
     InputMaskModule,
+    AutoCompleteModule,
     ToastModule
   ],
-  providers: [MessageService],
+  
   template: `
     <div class="ns-page-container">
       
@@ -142,7 +146,17 @@ import { Cliente } from '../../../models/cliente';
               <div class="ns-form-row-2">
                 <div class="ns-form-group mb-0" [class.ns-is-invalid]="isInvalid('cidade')">
                   <label for="cidade">Cidade *</label>
-                  <input id="cidade" type="text" formControlName="cidade" class="ns-input" placeholder="Ex: Gaspar" />
+                  <p-autoComplete
+                      id="cidade"
+                      formControlName="cidade"
+                      [suggestions]="filteredCidades"
+                      (completeMethod)="filterCidades($event)"
+                      field="label"
+                      placeholder="Ex: São Paulo - SP"
+                      inputStyleClass="ns-input"
+                      [styleClass]="isInvalid('cidade') ? 'ns-input-error' : ''"
+                      autocomplete="off"
+                    ></p-autoComplete>
                   @if (hasError('cidade', 'required')) {
                     <span class="ns-error-text"><i class="pi pi-info-circle"></i> Cidade é obrigatória</span>
                   }
@@ -209,7 +223,7 @@ import { Cliente } from '../../../models/cliente';
 
       </div>
     </div>
-    <p-toast position="bottom-right"></p-toast>
+    
   `,
   styles: [`
     /* ==========================================================================
@@ -387,6 +401,14 @@ import { Cliente } from '../../../models/cliente';
   `]
 })
 export class NovoCliente {
+  cidades: any[] = [];
+  filteredCidades: any[] = [];
+  private readonly http = inject(HttpClient);
+  
+  ngOnInit() {
+    this.carregarCidades();
+    
+  }
   private readonly formBuilder = inject(FormBuilder);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
@@ -425,7 +447,7 @@ export class NovoCliente {
     endereco += `, ${f.numero || 'S/N'}`;
     if (f.complemento) endereco += ` (${f.complemento})`;
     if (f.bairro) endereco += `, ${f.bairro}`;
-    if (f.cidade) endereco += ` - ${f.cidade}`;
+    if (f.cidade) endereco += ` - ${typeof f.cidade === "object" ? (f.cidade as any).value : f.cidade}`;
     if (f.cep) endereco += ` [CEP: ${f.cep}]`;
     
     return endereco;
@@ -461,7 +483,7 @@ export class NovoCliente {
           this.limpar();
           setTimeout(() => this.router.navigate(['/painel/clientes']), 1000);
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Erro ao salvar cliente', err);
           this.messageService.add({
             severity: 'error',
@@ -488,4 +510,52 @@ export class NovoCliente {
     this.limpar();
     this.router.navigate(['/painel/clientes']);
   }
-}
+
+  carregarCidades() {
+    this.http.get<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/municipios')
+      .pipe(timeout(20000))
+      .subscribe({
+        next: (data: any[]) => {
+          this.cidades = data
+            .filter((municipio: any) => municipio.microrregiao)
+            .map((municipio: any) => {
+              const estadoSigla = municipio.microrregiao?.mesorregiao?.UF?.sigla ?? '';
+              const label = estadoSigla
+                ? `${municipio.nome} - ${estadoSigla}`
+                : municipio.nome;
+              return { label, value: label };
+            });
+          this.filteredCidades = this.cidades.slice(0, 20);
+        },
+        error: (err: any) => {
+          this.cidades = [
+            { label: 'São Paulo - SP', value: 'São Paulo - SP' },
+            { label: 'Rio de Janeiro - RJ', value: 'Rio de Janeiro - RJ' },
+            { label: 'Belo Horizonte - MG', value: 'Belo Horizonte - MG' },
+            { label: 'Brasília - DF', value: 'Brasília - DF' },
+            { label: 'Salvador - BA', value: 'Salvador - BA' },
+            { label: 'Fortaleza - CE', value: 'Fortaleza - CE' },
+            { label: 'Curitiba - PR', value: 'Curitiba - PR' }
+          ];
+          this.filteredCidades = this.cidades.slice();
+        }
+      });
+  }
+
+  filterCidades(event: any): void {
+    const query = event.query;
+    this.filteredCidades = this.filterCidade(query, this.cidades);
+  }
+
+  filterCidade(query: string, cidades: any[]): any[] {
+    const filtered: any[] = [];
+    const lowerQuery = query.toLowerCase();
+    for (let i = 0; i < cidades.length; i++) {
+      const cidade = cidades[i];
+      if (cidade.label.toLowerCase().indexOf(lowerQuery) === 0) {
+        filtered.push(cidade);
+      }
+    }
+    return filtered;
+  }
+  }

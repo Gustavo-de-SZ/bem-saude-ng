@@ -28,23 +28,28 @@ import { ClienteService } from '../../../services/cliente.service';
     SelectModule,
     ToastModule
   ],
-  providers: [MessageService],
+  
   template: `
     <div class="ns-page-container">
-      <div class="ns-back-btn" (click)="goBack()">
-        <i class="pi pi-arrow-left"></i>
-      </div>
+    
+      <header class="ns-page-header">
+        <a routerLink="/painel/agenda" class="ns-back-btn">
+          <i class="pi pi-chevron-left"></i>
+        </a>
+        <div>
+          <h1>Editar Agendamento</h1>
+          <p>Atualize as informações do agendamento</p>
+        </div>
+      </header>
 
-      <main class="ns-main-content">
-        <div class="ns-grid-layout">
-          <div class="ns-form-column">
+      <div class="ns-grid-layout">
+        <main class="ns-form-column">
+          <section class="ns-card">
+            <h2 class="ns-card-title">
+              <i class="pi pi-calendar-plus text-primary"></i> Informações do Agendamento
+            </h2>
 
-            <section class="ns-card">
-              <h2 class="ns-card-title">
-                <i class="pi pi-calendar-plus text-primary"></i> Editar Agendamento
-              </h2>
-
-              <form [formGroup]="form" (ngSubmit)="atualizarAgendamento()">
+            <form [formGroup]="form" (ngSubmit)="atualizarAgendamento()">
 
                 <div class="ns-form-row">
                   <div class="ns-form-group" [class.ns-is-invalid]="isInvalid('titulo')">
@@ -133,7 +138,7 @@ import { ClienteService } from '../../../services/cliente.service';
               </form>
             </section>
 
-          </div>
+          </main>
 
           <aside class="ns-summary-column">
             <div class="ns-card ns-summary-card">
@@ -183,9 +188,8 @@ import { ClienteService } from '../../../services/cliente.service';
             </div>
           </aside>
         </div>
-      </main>
 
-      <p-toast position="bottom-right"></p-toast>
+      
     </div>
   `,
   styles: [`

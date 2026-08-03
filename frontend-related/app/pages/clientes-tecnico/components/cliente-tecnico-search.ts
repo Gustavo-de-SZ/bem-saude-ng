@@ -1,15 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-clientes-search',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="tcc-search-toolbar">
       <div class="tcc-search-input">
         <i class="pi pi-search"></i>
-        <input type="text" placeholder="Buscar por nome, empresa ou email...">
+        <input type="text" placeholder="Buscar por nome, empresa ou email..." [formControl]="searchControl">
       </div>
     </div>
   `,
@@ -25,4 +26,13 @@ import { CommonModule } from '@angular/common';
     .tcc-search-input input::placeholder { color: var(--tcc-text-muted, #94a3b8); }
   `]
 })
-export class ClientesSearch {}
+export class ClientesSearch {
+  searchControl = new FormControl('');
+  @Output() search = new EventEmitter<string>();
+
+  constructor() {
+    this.searchControl.valueChanges.subscribe(value => {
+      this.search.emit(value || '');
+    });
+  }
+}
