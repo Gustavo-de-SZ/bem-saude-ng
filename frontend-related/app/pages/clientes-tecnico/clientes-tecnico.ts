@@ -19,27 +19,27 @@ import { ClienteService } from '../../services/cliente.service';
   ],
   template: `
     <div class="tcc-page-wrapper tcc-fade-in">
-      
+
       <header class="tcc-page-header">
         <div class="tcc-header-title-group">
           <h1 class="tcc-title-lg">Clientes</h1>
           <p class="tcc-subtitle">Gerencie sua base de clientes</p>
         </div>
-        
+
         <button class="tcc-btn-main" routerLink="/painel/clientes/novo">
           <i class="pi pi-plus tcc-mr-sm"></i> Novo Cliente
         </button>
       </header>
 
       <app-clientes-stats></app-clientes-stats>
-      <app-clientes-search></app-clientes-search>
-      <app-clientes-list [clientes]="clientes"></app-clientes-list>
+      <app-clientes-search (search)="onSearch($event)"></app-clientes-search>
+      <app-clientes-list [clientes]="filteredClientes"></app-clientes-list>
 
     </div>
   `,
   styles: [`
     .tcc-page-wrapper { display: flex; flex-direction: column; gap: 24px; padding: 0; }
-    
+
     .tcc-page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
     .tcc-header-title-group { display: flex; flex-direction: column; }
     .tcc-title-lg { font-size: 28px; font-weight: 700; color: var(--tcc-text-main, #0f172a); margin: 0 0 6px 0; }
@@ -64,16 +64,33 @@ import { ClienteService } from '../../services/cliente.service';
 
 export class ClientesTecnico {
   clientes: Cliente[] = [];
+  filteredClientes: Cliente[] = [];
 
   constructor(private clienteService: ClienteService) {
     this.clienteService.getClientes().subscribe({
       next: (clientes) => {
         this.clientes = clientes;
+        this.filteredClientes = clientes;
       },
       error: (err) => {
         console.error('Erro ao carregar clientes', err);
         this.clientes = [];
+        this.filteredClientes = [];
       }
     });
+  }
+
+  onSearch(term: string) {
+    if (!term) {
+      this.filteredClientes = this.clientes;
+      return;
+    }
+    const lowerTerm = term.toLowerCase();
+    this.filteredClientes = this.clientes.filter(cliente =>
+      (cliente.nome?.toLowerCase().includes(lowerTerm)) ||
+      (cliente.nome_completo?.toLowerCase().includes(lowerTerm)) ||
+      (cliente.email?.toLowerCase().includes(lowerTerm)) ||
+      (cliente.empresa?.toLowerCase().includes(lowerTerm))
+    );
   }
 }

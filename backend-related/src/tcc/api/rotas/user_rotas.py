@@ -114,13 +114,13 @@ def verificar_perfil(
     session: Session = Depends(obter_sessao),
     token_data: dict = Depends(verify_token)
 ):
-    email = token_data.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Token invalido: email nao encontrado")
+    auth0_id = token_data.get("sub")
+    if not auth0_id:
+        raise HTTPException(status_code=400, detail="Token invalido: 'sub' nao encontrado")
 
-    # Buscar usuario pelo email
+    # Buscar usuario pelo auth0_id
     usuario_repo = RepositorioUsuario(session)
-    usuario = usuario_repo.buscar_por_email(email)
+    usuario = usuario_repo.buscar_por_auth0_id(auth0_id)
     if not usuario:
         # Usuario nao existe localmente ainda, entao nao tem perfil
         return {"exists": False, "type": None}

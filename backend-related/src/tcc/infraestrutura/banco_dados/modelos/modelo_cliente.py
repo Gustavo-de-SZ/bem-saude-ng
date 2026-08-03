@@ -7,7 +7,7 @@ class ModeloCliente(ModeloBase):
     __tablename__ = "clientes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, unique=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=True, unique=True)
 
     nome_completo = Column(String(255), nullable=False)
     telefone = Column(String(20), nullable=True)
@@ -27,4 +27,7 @@ class ModeloCliente(ModeloBase):
     #     secondaryjoin="and_(ModeloFavorito.profissional_id == ModeloProfissional.id)",
     #     back_populates="clientes_favoritos"
     # )
+    # Relationship for professionals who serve this client
+    profissionais = relationship("ModeloProfissional", secondary="cliente_tecnico", back_populates="clientes")
     chamados = relationship("ModeloChamado", back_populates="cliente")
+    equipamentos = relationship("ModeloEquipamento", back_populates="cliente", cascade="all, delete-orphan")

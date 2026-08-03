@@ -7,6 +7,7 @@ class ChamadoCreate(BaseModel):
     titulo: str = Field(..., max_length=255, example="Computador não liga")
     descricao_problema: str = Field(..., min_length=10)
     categoria_id: int
+    anexo: Optional[str] = None
     # Note: cliente_id and profissional_id come from context/auth in real app
 
 class ChamadoUpdate(BaseModel):
@@ -24,6 +25,7 @@ class ChamadoResponse(BaseModel):
     titulo: str
     descricao_problema: str
     status: StatusChamado
+    anexo: Optional[str] = None
     criado_em: datetime
 
     class Config:

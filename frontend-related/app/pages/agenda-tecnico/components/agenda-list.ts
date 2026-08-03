@@ -2,15 +2,22 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Agendamento } from '../../../shared/models';
+// PrimeNG imports for menu
+import { MenuModule } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
+// Services
+import { AgendaService } from '../../../services/agenda.service';
+import { Router } from '@angular/router';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-agenda-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, MenuModule],
   template: `
     <div class="tcc-agenda-list">
-      @for (item of compromissos; track item.titulo) {
-        <div class="tcc-agenda-card">
+      @for (item of compromissos; track trackByAgendamento($index, item)) {
+        <div class="tcc-agenda-card" (click)="openDetails(item)">
           <div class="tcc-agenda-datetime-col">
             <span class="tcc-date-month">{{ getDisplayMonth(item) }}</span>
             <span class="tcc-date-day">{{ getDisplayDay(item) }}</span>
@@ -34,10 +41,15 @@ import { Agendamento } from '../../../shared/models';
           </div>
 
           <div class="tcc-agenda-actions">
-            <button class="icon-btn" title="Editar" [routerLink]="['/painel/agenda/', item.id, 'edit']"><i class="pi pi-pencil"></i></button>
-            <button class="tcc-btn-outline small">
+            <button class="icon-btn" title="Editar" [routerLink]="['/painel/agenda/', item.id, 'edit']" (click)="$event.stopPropagation();">
+              <i class="pi pi-pencil"></i>
+            </button>
+
+            <!-- Changed button to trigger PrimeNG Menu -->
+            <button class="tcc-btn-outline small" (click)="menu.toggle($event); setMenuContext(item); $event.stopPropagation();">
               Ações <i class="pi pi-chevron-down"></i>
             </button>
+            <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
           </div>
         </div>
       }
@@ -51,7 +63,7 @@ import { Agendamento } from '../../../shared/models';
       border-radius: 12px; padding: 16px 24px; /* IGUAL A SERVIÇOS */
       display: flex; align-items: center; gap: 24px; transition: box-shadow 0.2s, border-color 0.2s;
     }
-    .tcc-agenda-card:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+    .tcc-agenda-card:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); cursor: pointer; }
 
     .tcc-agenda-datetime-col {
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -117,6 +129,80 @@ import { Agendamento } from '../../../shared/models';
 })
 export class AgendaList {
   @Input() compromissos: Agendamento[] = [];
+  menuItems: MenuItem[] = [];
+  selectedItem: any = null;
+
+  constructor(
+    // Inject services
+    private agendaService: AgendaService,
+    private router: Router,
+    private messageService: MessageService
+  ) {}
+
+  // Sets the context for the action menu and prepares the menu items
+  setMenuContext(item: any) {
+    this.selectedItem = item;
+    this.menuItems = [
+      {
+        label: 'Marcar como Concluído (Gerar Serviço)',
+        icon: 'pi pi-check-circle',
+        command: () => this.convertToService(item)
+      },
+      {
+        label: 'Cancelar Agendamento',
+        icon: 'pi pi-times',
+        command: () => this.updateStatus(item, 'Cancelado')
+      }
+    ];
+  }
+
+  // Updates the status of an agendamento
+  updateStatus(item: any, newStatus: string) {
+    // Create a copy of the item with the new status
+    const updatedItem = { ...item, status: newStatus };
+    // Call the agenda service to update the agendamento
+    this.agendaService.updateAgendamento(updatedItem).subscribe({
+      next: (updated) => {
+        // Update the local list
+        const index = this.compromissos.findIndex(i => i.id === item.id);
+        if (index !== -1) {
+          this.compromissos[index] = updated;
+        }
+        // Show a success message
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Status Atualizado',
+          detail: `Status alterado para ${newStatus}`
+        });
+      },
+      error: (err) => {
+        console.error('Erro ao atualizar status:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Não foi possível atualizar o status. Tente novamente.'
+        });
+      }
+    });
+  }
+
+  // Converts an agendamento to a service order
+  convertToService(item: any) {
+    // Navigate to the service creation page with the agendamento data as query parameters
+    this.router.navigate(['/painel/servicos/novo'], {
+      queryParams: {
+        fromAgendamento: item.id,
+        cliente: item.cliente,
+        titulo: item.titulo
+      }
+    });
+  }
+
+  openDetails(item: any): void {
+    if (item.id) {
+      this.router.navigate(['/painel/agenda/', item.id, 'edit']);
+    }
+  }
 
   getDisplayDay(item: Agendamento): string {
     const dia = item.dia || '15';
@@ -189,5 +275,16 @@ export class AgendaList {
       case 'Cancelado': return 'pi-times-circle';
       default: return 'pi-info-circle';
     }
+  }
+
+  /**
+   * Track function for agendamentos to handle cases where id might be empty/null
+   * @param index The index of the item
+   * @param item The agendamento item
+   * @returns A unique identifier for tracking
+   */
+  trackByAgendamento(index: number, item: Agendamento): any {
+    // Prefer id if available and not empty, otherwise use index to ensure uniqueness
+    return item.id && item.id.trim() !== '' ? item.id : index;
   }
 }

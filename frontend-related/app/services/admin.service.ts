@@ -9,7 +9,7 @@ export interface TecnicoAdmin {
   id: number;
   usuario_id: number;
   nome_fantasia: string;
-  cpf: string;
+  cnpj: string;
   telefone: string;
   descricao_servicos: string;
   aprovado_pelo_admin: boolean;

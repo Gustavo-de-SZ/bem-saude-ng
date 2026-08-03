@@ -7,6 +7,7 @@ from src.tcc.infraestrutura.banco_dados.conexao import obter_sessao
 from src.tcc.infraestrutura.repositorios.transacao_repositorio import RepositorioTransacao
 from src.tcc.infraestrutura.banco_dados.modelos.modelo_transacao import ModeloTransacao
 from src.tcc.api.schemas.transacao_schema import TransacaoResponse, TransacaoUpdate, TransacaoCreate
+from src.tcc.api.auth import get_professional_user
 
 router = APIRouter(
     prefix="/transacoes",
@@ -17,11 +18,14 @@ router = APIRouter(
     "",
     response_model=List[TransacaoResponse],
     status_code=status.HTTP_200_OK,
-    summary="Listar todas as transações"
+    summary="Listar minhas transações"
 )
-def listar_transacoes(session: Session = Depends(obter_sessao)):
+def listar_transacoes(
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    transacoes = repositorio.listar_todos()
+    transacoes = repositorio.listar_por_usuario(current_user.id)
     return transacoes
 
 @router.post(
@@ -30,7 +34,11 @@ def listar_transacoes(session: Session = Depends(obter_sessao)):
     status_code=status.HTTP_201_CREATED,
     summary="Criar nova transação"
 )
-def criar_transacao(transacao: TransacaoCreate, session: Session = Depends(obter_sessao)):
+def criar_transacao(
+    transacao: TransacaoCreate,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
     # Convert Pydantic model to SQLAlchemy model
     db_transacao = ModeloTransacao(
@@ -38,7 +46,8 @@ def criar_transacao(transacao: TransacaoCreate, session: Session = Depends(obter
         cliente=transacao.cliente,
         data=transacao.data,
         valor=transacao.valor,
-        status=transacao.status
+        status=transacao.status,
+        usuario_id=current_user.id
     )
     created_transacao = repositorio.create(db_transacao)
     return TransacaoResponse(
@@ -54,11 +63,15 @@ def criar_transacao(transacao: TransacaoCreate, session: Session = Depends(obter
     "/{transacao_id}",
     response_model=TransacaoResponse,
     status_code=status.HTTP_200_OK,
-    summary="Obter transação por ID"
+    summary="Obter minha transação por ID"
 )
-def obter_transacao_por_id(transacao_id: int, session: Session = Depends(obter_sessao)):
+def obter_transacao_por_id(
+    transacao_id: int,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    transacao = repositorio.get_by_id(transacao_id)
+    transacao = repositorio.get_by_id_e_usuario(transacao_id, current_user.id)
     if transacao is None:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
     return transacao
@@ -67,11 +80,15 @@ def obter_transacao_por_id(transacao_id: int, session: Session = Depends(obter_s
     "/titulo/{titulo}",
     response_model=TransacaoResponse,
     status_code=status.HTTP_200_OK,
-    summary="Obter transação por título"
+    summary="Obter minha transação por título"
 )
-def obter_transacao_por_titulo(titulo: str, session: Session = Depends(obter_sessao)):
+def obter_transacao_por_titulo(
+    titulo: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    transacao = repositorio.get_by_titulo(titulo)
+    transacao = repositorio.get_by_titulo_e_usuario(titulo, current_user.id)
     if transacao is None:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
     return transacao
@@ -80,11 +97,15 @@ def obter_transacao_por_titulo(titulo: str, session: Session = Depends(obter_ses
     "/cliente/{cliente}",
     response_model=TransacaoResponse,
     status_code=status.HTTP_200_OK,
-    summary="Obter transação por cliente"
+    summary="Obter minha transação por cliente"
 )
-def obter_transacao_por_cliente(cliente: str, session: Session = Depends(obter_sessao)):
+def obter_transacao_por_cliente(
+    cliente: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    transacao = repositorio.get_by_cliente(cliente)
+    transacao = repositorio.get_by_cliente_e_usuario(cliente, current_user.id)
     if transacao is None:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
     return transacao
@@ -93,42 +114,47 @@ def obter_transacao_por_cliente(cliente: str, session: Session = Depends(obter_s
     "/search",
     response_model=List[TransacaoResponse],
     status_code=status.HTTP_200_OK,
-    summary="Buscar transações por termo (título ou cliente)"
+    summary="Buscar minhas transações por termo (título ou cliente)"
 )
-def buscar_transacoes(term: str, session: Session = Depends(obter_sessao)):
+def buscar_transacoes(
+    term: str,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    transacoes = repositorio.search(term)
+    transacoes = repositorio.search_e_usuario(term, current_user.id)
     return transacoes
 
 @router.put(
     "/{transacao_id}",
     response_model=TransacaoResponse,
     status_code=status.HTTP_200_OK,
-    summary="Atualizar transação"
+    summary="Atualizar minha transação"
 )
-def atualizar_transacao(transacao_id: int, transacao_update: TransacaoUpdate, session: Session = Depends(obter_sessao)):
+def atualizar_transacao(
+    transacao_id: int,
+    transacao_update: TransacaoUpdate,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    transacao = repositorio.get_by_id(transacao_id)
+    transacao = repositorio.update(transacao_id, current_user.id, **transacao_update.model_dump(exclude_unset=True))
     if transacao is None:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
-
-    # Update only the fields that are provided (not None)
-    update_data = transacao_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(transacao, key, value)
-
-    session.commit()
-    session.refresh(transacao)
     return transacao
 
 @router.delete(
     "/{transacao_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Excluir transação"
+    summary="Excluir minha transação"
 )
-def excluir_transacao(transacao_id: int, session: Session = Depends(obter_sessao)):
+def excluir_transacao(
+    transacao_id: int,
+    session: Session = Depends(obter_sessao),
+    current_user = Depends(get_professional_user)
+):
     repositorio = RepositorioTransacao(session)
-    sucesso = repositorio.delete(transacao_id)
+    sucesso = repositorio.delete(transacao_id, current_user.id)
     if not sucesso:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
     return None

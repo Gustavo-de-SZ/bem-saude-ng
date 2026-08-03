@@ -9,3 +9,6 @@ from .modelo_inventario import ModeloInventario
 from .modelo_agendamento import ModeloAgendamento
 from .modelo_servico import ModeloServico
 from .modelo_transacao import ModeloTransacao
+from .modelo_equipamento import ModeloEquipamento, TipoEquipamentoEnum
+from .modelo_notificacao import ModeloNotificacao
+from .modelo_mensagem import ModeloMensagem

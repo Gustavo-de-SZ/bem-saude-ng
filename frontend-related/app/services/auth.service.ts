@@ -2,7 +2,7 @@ import { Injectable, inject, InjectionToken } from '@angular/core';
 import { AuthService as Auth0Service } from '@auth0/auth0-angular';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { CanActivateFn, Router } from '@angular/router';
-import { map, take } from 'rxjs/operators';
+import { map, take, timeout, catchError } from 'rxjs/operators';
 
 export const REAL_AUTH0_TOKEN = new InjectionToken<any>('REAL_AUTH0_TOKEN');
 
@@ -33,10 +33,20 @@ export class AuthService {
     }
 
     if (this.auth0) {
-      this.auth0.isAuthenticated$.subscribe((auth: boolean) => {
+      this.auth0.isAuthenticated$.pipe(
+        timeout(10000),
+        catchError((err: any) => {
+          console.warn('Auth0 isAuthenticated$ timeout or error in constructor', err);
+          return of(false);
+        })
+      ).subscribe((auth: boolean) => {
         this.realIsAuthenticated = auth;
       });
     }
+  }
+
+  private base64url(str: string): string {
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
   // Combined user$ state (prioritizes mock authentication)
@@ -45,7 +55,13 @@ export class AuthService {
       if (isMockAuth) {
         this.mockUser$.subscribe(u => subscriber.next(u));
       } else if (this.auth0) {
-        this.auth0.user$.subscribe((u: any) => subscriber.next(u));
+        this.auth0.user$.pipe(
+          timeout(10000),
+          catchError((err: any) => {
+            console.warn('Auth0 user$ timeout or error, returning null', err);
+            return of(null);
+          })
+        ).subscribe((u: any) => subscriber.next(u));
       } else {
         subscriber.next(null);
       }
@@ -58,7 +74,13 @@ export class AuthService {
       if (isMockAuth) {
         subscriber.next(true);
       } else if (this.auth0) {
-        this.auth0.isAuthenticated$.subscribe((auth: boolean) => subscriber.next(auth));
+        this.auth0.isAuthenticated$.pipe(
+          timeout(10000),
+          catchError((err: any) => {
+            console.warn('Auth0 isAuthenticated$ timeout or error, returning false', err);
+            return of(false);
+          })
+        ).subscribe((auth: boolean) => subscriber.next(auth));
       } else {
         subscriber.next(false);
       }
@@ -71,7 +93,13 @@ export class AuthService {
       if (isMockLoading) {
         subscriber.next(true);
       } else if (this.auth0) {
-        this.auth0.isLoading$.subscribe((loading: boolean) => subscriber.next(loading));
+        this.auth0.isLoading$.pipe(
+          timeout(10000),
+          catchError((err: any) => {
+            console.warn('Auth0 isLoading$ timeout or error, returning false', err);
+            return of(false);
+          })
+        ).subscribe((loading: boolean) => subscriber.next(loading));
       } else {
         subscriber.next(false);
       }
@@ -152,7 +180,22 @@ export class AuthService {
         authorizationParams: {
           audience: 'https://api.tcc-ng.com'
         }
-      });
+      }).pipe(
+        timeout(10000),
+        catchError(err => {
+          console.warn('Auth0 getAccessTokenSilently timeout or error', err);
+          // Fall back to mock token on auth0 error
+          const defaultMockPayload = {
+            sub: 'auth0|mocktecnico123',
+            email: 'tecnico@tcc-ng.com',
+            'https://tcc-ng.com/roles': ['Tecnico']
+          };
+          const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+          const payload = btoa(JSON.stringify(defaultMockPayload));
+          const signature = 'mock_signature';
+          return of(`${header}.${payload}.${signature}`);
+        })
+      );
     }
 
     // Default fallback mock token when not authenticated, to prevent hanging

@@ -23,6 +23,7 @@ class ModeloChamado(ModeloBase):
     
     titulo = Column(String(255), nullable=False)
     descricao_problema = Column(Text, nullable=False)
+    anexo = Column(Text, nullable=True)
     status = Column(Enum(StatusChamado), default=StatusChamado.ABERTO)
     
 

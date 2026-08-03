@@ -1,16 +1,18 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { MenuModule } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
 import { Cliente } from '../../../models/cliente';
 
 @Component({
   selector: 'app-clientes-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, MenuModule],
   template: `
     <div class="tcc-client-list">
-      @for (cliente of clientes; track cliente.email) {
-        <div class="tcc-client-card">
+      @for (cliente of clientes; track trackByCliente($index, cliente)) {
+        <div class="tcc-client-card" (click)="openDetails(cliente)">
 
           <div class="tcc-client-icon-box">
             <i class="pi pi-users"></i>
@@ -44,8 +46,12 @@ import { Cliente } from '../../../models/cliente';
           </div>
 
           <div class="tcc-client-actions">
-            <button class="icon-btn" title="Editar" [routerLink]="['/painel/clientes/', cliente.email, 'edit']"><i class="pi pi-pencil"></i></button>
-            <button class="tcc-btn-outline small">
+            <button class="icon-btn" title="Editar" [routerLink]="['/painel/clientes/', cliente.email || cliente.id || cliente.nome, 'edit']" (click)="$event.stopPropagation();">
+              <i class="pi pi-pencil"></i>
+            </button>
+
+            <!-- Modify the button to trigger the menu -->
+            <button class="tcc-btn-outline small" (click)="menu.toggle($event); setMenuContext(cliente); $event.stopPropagation();">
               Ações <i class="pi pi-chevron-down"></i>
             </button>
           </div>
@@ -53,6 +59,9 @@ import { Cliente } from '../../../models/cliente';
         </div>
       }
     </div>
+
+    <!-- Add the menu component -->
+    <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
   `,
   styles: [`
     .tcc-client-list { display: flex; flex-direction: column; gap: 12px; }
@@ -62,7 +71,7 @@ import { Cliente } from '../../../models/cliente';
       border-radius: 12px; padding: 16px 24px;
       display: flex; align-items: center; gap: 24px; transition: box-shadow 0.2s, border-color 0.2s;
     }
-    .tcc-client-card:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+    .tcc-client-card:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); cursor: pointer; }
 
     .tcc-client-icon-box {
       width: 64px;
@@ -207,10 +216,61 @@ import { Cliente } from '../../../models/cliente';
       background-color: var(--tcc-bg, #f8fafc);
       color: var(--tcc-text-main, #475569);
     }
+    @media (max-width: 768px) {
+      .tcc-client-card { flex-direction: column; align-items: flex-start; }
+      .tcc-client-stats { border: none; padding: 0; padding-top: 12px; border-top: 1px solid var(--tcc-border, #e2e8f0); width: 100%; justify-content: space-around; }
+      .tcc-client-actions { width: 100%; justify-content: flex-end; }
+    }
   `]
 })
   export class ClientesList {
   @Input() clientes: Cliente[] = [];
+
+  private router = inject(Router);
+
+  menuItems: MenuItem[] = [];
+  selectedCliente: Cliente | null = null;
+
+  setMenuContext(cliente: Cliente) {
+    this.selectedCliente = cliente;
+    this.menuItems = [
+      {
+        label: 'Ver Detalhes',
+        icon: 'pi pi-eye',
+        command: () => {
+          if (this.selectedCliente) {
+            this.openDetails(this.selectedCliente);
+          }
+        }
+      },
+      {
+        label: 'Editar Cliente',
+        icon: 'pi pi-pencil',
+        command: () => {
+          if (this.selectedCliente) {
+            this.router.navigate(['/painel/clientes', this.selectedCliente.email || this.selectedCliente.id || this.selectedCliente.nome, 'edit']);
+          }
+        }
+      }
+    ];
+  }
+
+  openDetails(cliente: Cliente): void {
+    if (cliente && (cliente.email || cliente.nome)) {
+      this.router.navigate(['/painel/clientes', cliente.email || cliente.id || cliente.nome, 'edit']);
+    }
+  }
+
+  /**
+   * Track function for clientes to handle cases where email might be empty/null
+   * @param index The index of the item
+   * @param item The cliente item
+   * @returns A unique identifier for tracking
+   */
+  trackByCliente(index: number, item: Cliente): any {
+    // Prefer email if available and not empty, otherwise use index to ensure uniqueness
+    return item.email && item.email.trim() !== '' ? item.email : index;
+  }
 
   formatPhone(phone: string): string {
     if (!phone) return '';

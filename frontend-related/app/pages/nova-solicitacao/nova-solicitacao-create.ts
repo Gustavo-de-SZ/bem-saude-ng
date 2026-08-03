@@ -25,11 +25,11 @@ import { SolicitacaoService } from '../../services/solicitacao.service';
     DatePickerModule,
     ToastModule
   ],
-  providers: [MessageService],
+  
   template: `
     <div class="ns-page-container">
       <header class="ns-page-header">
-        <a routerLink="/painel/solicitacoes" class="ns-back-btn">
+        <a routerLink="/cliente/meus-chamados" class="ns-back-btn">
           <i class="pi pi-chevron-left"></i>
         </a>
         <div>
@@ -99,6 +99,28 @@ import { SolicitacaoService } from '../../services/solicitacao.service';
               </div>
             </section>
 
+          
+            <div class="ns-field-group">
+              <label>Anexo (Opcional)</label>
+              <div class="ns-upload-box" (click)="fileInput.click()">
+                <input type="file" #fileInput (change)="onFileSelect($event)" accept="image/*,.pdf" style="display: none">
+                
+                @if (solicitacaoForm.get('anexo')?.value) {
+                  <div class="ns-file-selected">
+                    <i class="pi pi-check-circle text-green-500"></i> Arquivo anexado
+                    <button type="button" class="icon-btn text-red-500" (click)="$event.stopPropagation(); removeFile()">
+                      <i class="pi pi-times"></i>
+                    </button>
+                  </div>
+                } @else {
+                  <div class="ns-upload-placeholder">
+                    <i class="pi pi-cloud-upload"></i>
+                    <span>Clique para anexar imagem ou documento</span>
+                  </div>
+                }
+              </div>
+            </div>
+
           </form>
         </main>
 
@@ -141,7 +163,7 @@ import { SolicitacaoService } from '../../services/solicitacao.service';
         </aside>
       </div>
 
-      <p-toast position="bottom-right"></p-toast>
+      
     </div>
   `,
   styles: [`
@@ -308,6 +330,36 @@ import { SolicitacaoService } from '../../services/solicitacao.service';
 
     .ns-btn-cancel { width: 100%; background: transparent; border: none; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; text-align: center; }
     .ns-btn-cancel:hover { color: var(--text-main); text-decoration: underline; }
+    .ns-upload-box {
+      border: 2px dashed var(--border-input);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      background-color: var(--bg-card);
+      transition: all 0.2s;
+    }
+    .ns-upload-box:hover {
+      border-color: var(--primary);
+      background-color: var(--surface-hover);
+    }
+    .ns-upload-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+    .ns-upload-placeholder i { font-size: 24px; }
+    .ns-file-selected {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
   `]
 })
 export class NovaSolicitacao implements OnInit {
@@ -333,6 +385,7 @@ export class NovaSolicitacao implements OnInit {
       titulo: ['', [Validators.required, Validators.minLength(10)]],
       descricao: ['', [Validators.required, Validators.minLength(10)]],
       categoriaId: ['', Validators.required],
+      anexo: [null],
       dataCriacao: [new Date(), Validators.required]
     });
   }
@@ -384,6 +437,31 @@ export class NovaSolicitacao implements OnInit {
     return str;
   }
 
+  
+  onFileSelect(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Arquivo muito grande',
+          detail: 'O anexo deve ter no máximo 5MB'
+        });
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.solicitacaoForm.patchValue({ anexo: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removeFile() {
+    this.solicitacaoForm.patchValue({ anexo: null });
+  }
+
   criarSolicitacao(): void {
     if (this.solicitacaoForm.valid) {
       const formValue = this.solicitacaoForm.getRawValue();
@@ -396,6 +474,7 @@ export class NovaSolicitacao implements OnInit {
         titulo: formValue.titulo,
         descricao_problema: formValue.descricao,
         categoria_id: catId,
+        anexo: formValue.anexo,
         dataCriacao: formValue.dataCriacao instanceof Date
           ? formValue.dataCriacao.toISOString().split('T')[0] // YYYY-MM-DD
           : String(formValue.dataCriacao)
@@ -414,7 +493,7 @@ export class NovaSolicitacao implements OnInit {
             dataCriacao: new Date() // reset date to today as Date object
           });
           // Redireciona para a lista de solicitações após 1 segundo
-          setTimeout(() => this.router.navigate(['/painel/solicitacoes']), 1000);
+          setTimeout(() => this.router.navigate(['/cliente/meus-chamados']), 1000);
         },
         error: (err) => {
           console.error('Erro ao criar solicitação', err);
@@ -439,7 +518,7 @@ export class NovaSolicitacao implements OnInit {
     this.solicitacaoForm.reset({
       dataCriacao: new Date()
     });
-    this.router.navigate(['/painel/solicitacoes']);
+    this.router.navigate(['/cliente/meus-chamados']);
   }
 
   // Helper to get category label for display

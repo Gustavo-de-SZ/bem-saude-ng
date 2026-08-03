@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Enum, DateTime
+from sqlalchemy import Column, String, Integer, Enum, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from .modelo_base import ModeloBase
 import enum
@@ -27,3 +27,4 @@ class ModeloAgendamento(ModeloBase):
     status = Column(Enum(AgendamentoStatusEnum), nullable=False)
     duracao = Column(String(20), nullable=True)
     tipo = Column(Enum(AgendamentoTipoEnum), nullable=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)

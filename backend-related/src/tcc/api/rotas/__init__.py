@@ -7,3 +7,4 @@ from .cliente_rotas import router as cliente_router
 from .profissional_rotas import router as profissional_router
 from .categoria_rotas import router as categoria_router
 from .solicitacao_rotas import router as solicitacao_router
+from .equipamento_rotas import router as equipamento_router

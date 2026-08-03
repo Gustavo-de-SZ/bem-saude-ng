@@ -59,5 +59,5 @@ class RepositorioUsuario:
     def buscar_por_id(self, id: int) -> ModeloUsuario | None:
         return self.sessao.query(ModeloUsuario).filter(ModeloUsuario.id == id).first()
 
-    def buscar_por_email(self, email: str) -> ModeloUsuario | None:
-        return self.sessao.query(ModeloUsuario).filter(ModeloUsuario.email == email).first()
+    def buscar_por_auth0_id(self, auth0_id: str) -> ModeloUsuario | None:
+        return self.sessao.query(ModeloUsuario).filter(ModeloUsuario.auth0_id == auth0_id).first()

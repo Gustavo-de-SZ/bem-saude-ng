@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Enum, DateTime, Numeric
+from sqlalchemy import Column, String, Integer, Enum, DateTime, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 from .modelo_base import ModeloBase
 import enum
@@ -17,6 +17,12 @@ class ModeloServico(ModeloBase):
     titulo = Column(String(255), nullable=False, unique=True)
     status = Column(Enum(ServicoStatusEnum), nullable=False)
     cliente = Column(String(255), nullable=False)
-    data = Column(String(20), nullable=False)  
+    data = Column(String(20), nullable=False)
     duracao = Column(String(20), nullable=False)
     valor = Column(Numeric(10, 2), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    equipamento_id = Column(Integer, ForeignKey("equipamentos.id"), nullable=True)
+
+    # Relationships
+    usuario = relationship("ModeloUsuario")
+    equipamento = relationship("ModeloEquipamento")

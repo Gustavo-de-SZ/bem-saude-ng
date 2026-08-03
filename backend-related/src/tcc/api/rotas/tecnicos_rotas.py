@@ -8,7 +8,7 @@ from src.tcc.infraestrutura.banco_dados.conexao import obter_sessao
 from src.tcc.api.auth import verify_token
 from src.tcc.infraestrutura.repositorios.cliente_repositorio import RepositorioCliente
 from src.tcc.infraestrutura.repositorios.profissional_repositorio import RepositorioProfissional
-from src.tcc.api.schemas.tecnico_schema import TecnicCreateRequest, TecnicResponse, TecnicUpdateRequest
+from src.tcc.api.schemas.tecnico_schema import TecnicoCreateRequest, TecnicoResponse, TecnicoUpdateRequest
 
 router = APIRouter(
     prefix="/tecnicos",
@@ -17,55 +17,112 @@ router = APIRouter(
 
 @router.post(
     "",
-    response_model=TecnicResponse,
+    response_model=TecnicoResponse,
     status_code=status.HTTP_200_OK,
     summary="Criar ou recuperar perfil tecnico (profissional) apos autenticacao via Auth0"
 )
 def criar_tecnico(
-    dados: TecnicCreateRequest,
+    dados: TecnicoCreateRequest,
     session: Session = Depends(obter_sessao),
     token_data: dict = Depends(verify_token)
 ):
-    # Extrair email do token
+    # 1. Extrair auth0_id (sub) do token
+    auth0_id = token_data.get("sub")
+    if not auth0_id:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Token invalido: 'sub' ausente")
+
+    # 2. Extrair email do token (pode ser None se nao estiver no token)
     user_email = token_data.get("email")
-    if not user_email:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Token invalido: email ausente")
 
-    # Ignorar o email do corpo para evitar spoofing; usamos sempre o email do token
-
-    # Verificar se já existe um usuario com esse email
+    # 3. Instanciar repositórios
     usuario_repo = RepositorioUsuario(session)
-    usuario = usuario_repo.buscar_por_email(user_email)
+    profissional_repo = RepositorioProfissional(session)
+    cliente_repo = RepositorioCliente(session)
 
-    # Se nao existir usuario, criamos um novo usuario (sem senha) para vincular ao profissional
+    # 4. Verificar se já existe usuario com esse auth0_id ou por email
+    usuario = usuario_repo.buscar_por_auth0_id(auth0_id)
+    email_to_use = user_email if user_email else dados.email
+    if not usuario and email_to_use:
+        # Try to find by email to link existing account
+        usuario = usuario_repo.buscar_por_email(email_to_use)
+        if usuario:
+            # Link this auth0_id to the existing user (if not already linked)
+            if usuario.auth0_id != auth0_id:
+                usuario.auth0_id = auth0_id
+                # The session will commit later when the perfil is saved
     if not usuario:
-        # Criar usuario com senha nula (auth0 gerencia autenticacao)
+        # Se nao existir usuario no banco, criamos um novo
+        if not email_to_use:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Email não fornecido")
         usuario_obj = ModeloUsuario(
-            email=user_email,
+            email=email_to_use,
             senha_hash=None,
             tipo_perfil=TipoPerfil.PROFISSIONAL,
-            ativo=True
+            ativo=True,
+            auth0_id=auth0_id
         )
         usuario = usuario_repo.criar(usuario_obj)
+
+        # Tratar nome fantasia e descricao
+        nome_fantasia_source = email_to_use if email_to_use else "profissional"
+        nome_fantasia = dados.nome if dados.nome else (nome_fantasia_source.split('@')[0] if '@' in email_to_use else "profissional")
+
+        descricao_parts = []
+        if dados.descricao_servicos:
+            descricao_parts.append(dados.descricao_servicos)
+
+        if hasattr(dados, 'especialidadePrincipal') and getattr(dados, 'especialidadePrincipal'):
+            descricao_parts.append(f"Especialidade: {getattr(dados, 'especialidadePrincipal')}")
+
+        if hasattr(dados, 'local') and getattr(dados, 'local'):
+            descricao_parts.append(f"Local: {getattr(dados, 'local')}")
+
+        if hasattr(dados, 'tempoResposta') and getattr(dados, 'tempoResposta'):
+            descricao_parts.append(f"Tempo de resposta: {getattr(dados, 'tempoResposta')}")
+
+        descricao_servicos = " | ".join(descricao_parts) if descricao_parts else None
+
+        # Criar perfil de tecnico utilizando usuario_id
+        profissional = profissional_repo.criar(
+            usuario_id=usuario.id,
+            nome_fantasia=nome_fantasia,
+            cnpj=dados.cnpj if dados.cnpj else None, cpf=dados.cpf if dados.cpf else None,
+            telefone=dados.telefone if dados.telefone else None,
+            descricao_servicos=descricao_servicos
+        )
+
+        # Garantir que o tipo_perfil do usuario esteja correto
+        usuario.tipo_perfil = TipoPerfil.PROFISSIONAL
+        usuario_repo.sessao.commit()
+
+        return TecnicoResponse(
+            id=profissional.id,
+            usuario_id=profissional.usuario_id,
+            nome_fantasia=profissional.nome_fantasia,
+            cnpj=profissional.cnpj,
+            cpf=profissional.cpf,
+            telefone=profissional.telefone,
+            descricao_servicos=profissional.descricao_servicos,
+            aprovado_pelo_admin=profissional.aprovado_pelo_admin,
+            criado_em=profissional.criado_em,
+            email=profissional.usuario.email
+        )
     else:
-        # Se o usuario existir, verificamos se ele já tem um perfil de tecnico
-        profissional_repo = RepositorioProfissional(session)
+        # Se usuario já existe
         profissional_existente = profissional_repo.buscar_por_usuario_id(usuario.id)
         if profissional_existente:
-            # Já existe perfil de tecnico, retornamos o existente
-            return TecnicResponse(
+            return TecnicoResponse(
                 id=profissional_existente.id,
                 usuario_id=profissional_existente.usuario_id,
                 nome_fantasia=profissional_existente.nome_fantasia,
-                cpf=profissional_existente.cpf,
+                cnpj=profissional_existente.cnpj,
                 telefone=profissional_existente.telefone,
                 descricao_servicos=profissional_existente.descricao_servicos,
                 aprovado_pelo_admin=profissional_existente.aprovado_pelo_admin,
                 criado_em=profissional_existente.criado_em,
                 email=profissional_existente.usuario.email
             )
-        # Verificar se já tem perfil de cliente (conflito de papel)
-        cliente_repo = RepositorioCliente(session)
+
         cliente_existente = cliente_repo.buscar_por_usuario_id(usuario.id)
         if cliente_existente:
             raise HTTPException(
@@ -73,52 +130,57 @@ def criar_tecnico(
                 detail="Usuario ja possui perfil de cliente. Nao e possivel criar perfil de tecnico."
             )
 
-    # Criar novo perfil profissional
-    # Usar o nome fornecido (do Auth0) como nome_fantasia
-    nome_fantasia = dados.nome if dados.nome else user_email.split('@')[0]  # fallback
+        # Para usuario existente, sempre usar o email do usuario (do banco) por motivos de seguranca
+        # (nao usar email do corpo da requisicao para evitar spoofing)
+        email_to_use = usuario.email
+        nome_fantasia_source = email_to_use if email_to_use else "profissional"
+        nome_fantasia = dados.nome if dados.nome else (nome_fantasia_source.split('@')[0] if '@' in email_to_use else "profissional")
 
-    # Construir descricao_servicos combinando os campos fornecidos
-    descricao_parts = []
-    if dados.descricao_servicos:
-        descricao_parts.append(dados.descricao_servicos)
+        descricao_parts = []
+        if dados.descricao_servicos:
+            descricao_parts.append(dados.descricao_servicos)
 
-    # Adicionar informacoes extras do frontend se fornecidas
-    if hasattr(dados, 'especialidadePrincipal') and getattr(dados, 'especialidadePrincipal'):
-        descricao_parts.append(f"Especialidade: {getattr(dados, 'especialidadePrincipal')}")
+        if hasattr(dados, 'especialidadePrincipal') and getattr(dados, 'especialidadePrincipal'):
+            descricao_parts.append(f"Especialidade: {getattr(dados, 'especialidadePrincipal')}")
 
-    if hasattr(dados, 'local') and getattr(dados, 'local'):
-        descricao_parts.append(f"Local: {getattr(dados, 'local')}")
+        if hasattr(dados, 'local') and getattr(dados, 'local'):
+            descricao_parts.append(f"Local: {getattr(dados, 'local')}")
 
-    if hasattr(dados, 'tempoResposta') and getattr(dados, 'tempoResposta'):
-        descricao_parts.append(f"Tempo de resposta: {getattr(dados, 'tempoResposta')}")
+        if hasattr(dados, 'tempoResposta') and getattr(dados, 'tempoResposta'):
+            descricao_parts.append(f"Tempo de resposta: {getattr(dados, 'tempoResposta')}")
 
-    descricao_servicos = " | ".join(descricao_parts) if descricao_parts else None
+        descricao_servicos = " | ".join(descricao_parts) if descricao_parts else None
 
-    profissional = profissional_repo.criar(
-        email=user_email,
-        senha_hash=None,  # Auth0 gerencia senha
-        nome_fantasia=nome_fantasia,
-        cpf=cpf if (cpf := dados.cpf) else None,
-        telefone=telefone if (telefone := dados.telefone) else None,
-        descricao_servicos=descricao_servicos
-    )
+        # Criar perfil de tecnico utilizando usuario_id
+        profissional = profissional_repo.criar(
+            usuario_id=usuario.id,
+            nome_fantasia=nome_fantasia,
+            cnpj=dados.cnpj if dados.cnpj else None,
+            telefone=dados.telefone if dados.telefone else None,
+            descricao_servicos=descricao_servicos
+        )
 
-    return TecnicResponse(
-        id=profissional.id,
-        usuario_id=profissional.usuario_id,
-        nome_fantasia=profissional.nome_fantasia,
-        cpf=profissional.cpf,
-        telefone=profissional.telefone,
-        descricao_servicos=profissional.descricao_servicos,
-        aprovado_pelo_admin=profissional.aprovado_pelo_admin,
-        criado_em=profissional.criado_em,
-        email=profissional.usuario.email
-    )
+        # Atualizar o tipo_perfil do usuario para refletir o perfil criado
+        usuario.tipo_perfil = TipoPerfil.PROFISSIONAL
+        usuario_repo.sessao.commit()
+
+        return TecnicoResponse(
+            id=profissional.id,
+            usuario_id=profissional.usuario_id,
+            nome_fantasia=profissional.nome_fantasia,
+            cnpj=profissional.cnpj,
+            cpf=profissional.cpf,
+            telefone=profissional.telefone,
+            descricao_servicos=profissional.descricao_servicos,
+            aprovado_pelo_admin=profissional.aprovado_pelo_admin,
+            criado_em=profissional.criado_em,
+            email=profissional.usuario.email
+        )
 
 
 @router.get(
     "/me",
-    response_model=TecnicResponse,
+    response_model=TecnicoResponse,
     status_code=status.HTTP_200_OK,
     summary="Obter perfil do tecnico autenticado"
 )
@@ -126,28 +188,42 @@ def obter_meu_perfil_tecnico(
     session: Session = Depends(obter_sessao),
     token_data: dict = Depends(verify_token)
 ):
-    # Obter email do token
-    user_email = token_data.get("email")
-    if not user_email:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Token invalido: email ausente")
+    auth0_id = token_data.get("sub")
+    if not auth0_id:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Token invalido: 'sub' ausente")
 
-    # Buscar usuario pelo email
     usuario_repo = RepositorioUsuario(session)
-    usuario = usuario_repo.buscar_por_email(user_email)
-    if not usuario:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Usuario nao encontrado")
+    usuario = usuario_repo.buscar_por_auth0_id(auth0_id)
 
-    # Buscar perfil de tecnico pelo usuario_id
-    profissional_repo = RepositorioProfissional(session)
+    if not usuario:
+        # Auto-create user and profile
+        user_email = token_data.get("email") or "profissional"
+        usuario_obj = ModeloUsuario(
+            email=user_email,
+            senha_hash=None,
+            tipo_perfil=TipoPerfil.PROFISSIONAL,
+            ativo=True,
+            auth0_id=auth0_id
+        )
+        usuario = usuario_repo.criar(usuario_obj)
+        
     profissional = profissional_repo.buscar_por_usuario_id(usuario.id)
     if not profissional:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Perfil de tecnico nao encontrado")
+        # Auto-create profissional profile
+        user_email = token_data.get("email") or "profissional"
+        nome_fantasia = user_email.split('@')[0] if '@' in user_email else "profissional"
+        profissional = profissional_repo.criar(
+            usuario_id=usuario.id,
+            nome_fantasia=nome_fantasia,
+            cnpj=None, cpf=None, telefone=None, descricao_servicos=None
+        )
 
-    return TecnicResponse(
+
+    return TecnicoResponse(
         id=profissional.id,
         usuario_id=profissional.usuario_id,
         nome_fantasia=profissional.nome_fantasia,
-        cpf=profissional.cpf,
+        cnpj=profissional.cnpj,
         telefone=profissional.telefone,
         descricao_servicos=profissional.descricao_servicos,
         aprovado_pelo_admin=profissional.aprovado_pelo_admin,
@@ -158,40 +234,34 @@ def obter_meu_perfil_tecnico(
 
 @router.put(
     "/me",
-    response_model=TecnicResponse,
+    response_model=TecnicoResponse,
     status_code=status.HTTP_200_OK,
     summary="Atualizar perfil do tecnico autenticado"
 )
 def atualizar_meu_perfil_tecnico(
-    dados: TecnicUpdateRequest,
+    dados: TecnicoUpdateRequest,
     session: Session = Depends(obter_sessao),
     token_data: dict = Depends(verify_token)
 ):
-    # Obter email do token
-    user_email = token_data.get("email")
-    if not user_email:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Token invalido: email ausente")
+    auth0_id = token_data.get("sub")
+    if not auth0_id:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Token invalido: 'sub' ausente")
 
-    # Buscar usuario pelo email
     usuario_repo = RepositorioUsuario(session)
-    usuario = usuario_repo.buscar_por_email(user_email)
+    usuario = usuario_repo.buscar_por_auth0_id(auth0_id)
     if not usuario:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Usuario nao encontrado")
 
-    # Buscar perfil de tecnico pelo usuario_id
     profissional_repo = RepositorioProfissional(session)
     profissional = profissional_repo.buscar_por_usuario_id(usuario.id)
     if not profissional:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Perfil de tecnico nao encontrado")
 
-    # Atualizar campos fornecidos
     update_data = dados.dict(exclude_unset=True)
 
-    # Mapear nome para nome_fantasia
     if 'nome' in update_data:
         profissional.nome_fantasia = update_data.pop('nome')
 
-    # Atualizar outros campos diretamente
     for field, value in update_data.items():
         if hasattr(profissional, field):
             setattr(profissional, field, value)
@@ -199,7 +269,7 @@ def atualizar_meu_perfil_tecnico(
     session.commit()
     session.refresh(profissional)
 
-    return TecnicResponse(
+    return TecnicoResponse(
         id=profissional.id,
         usuario_id=profissional.usuario_id,
         nome_fantasia=profissional.nome_fantasia,

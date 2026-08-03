@@ -21,6 +21,7 @@ class ClienteCreateTech(ClienteBase):
 
 class ClienteAuth0Request(ClienteBase):
     # No senha field - Auth0 managed
+    email: Optional[EmailStr] = None  # Made optional; will be taken from token if not provided
     tipoCliente: str
     status: str = 'Ativo'
 
@@ -42,12 +43,12 @@ class ClienteUpdateRequest(BaseModel):
 
 class ClienteResponse(BaseModel):
     id: int
-    usuario_id: int
+    usuario_id: int | None = None
     nome_completo: str
-    telefone: str
+    telefone: str | None = None
     criado_em: datetime
-    email: str
-    ativo: bool
+    email: str | None = None
+    ativo: bool = True
     empresa: str | None = None
     avaliacao: int = 0
     servicos_ativos: int = 0

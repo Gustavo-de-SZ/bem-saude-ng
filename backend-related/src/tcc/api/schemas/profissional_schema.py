@@ -5,15 +5,21 @@ class ProfissionalCriarRequest(BaseModel):
     email: EmailStr
     senha: str
     nome_fantasia: str
-    cpf: str
+    cnpj: str | None = None
     telefone: str
+    descricao_servicos: str | None = None
+
+class ProfissionalUpdateRequest(BaseModel):
+    nome_fantasia: str | None = None
+    cnpj: str | None = None
+    telefone: str | None = None
     descricao_servicos: str | None = None
 
 class ProfissionalResponse(BaseModel):
     id: int
     usuario_id: int
     nome_fantasia: str
-    cpf: str
+    cnpj: str | None = None
     telefone: str
     descricao_servicos: str | None = None
     aprovado_pelo_admin: bool

@@ -1,4 +1,5 @@
 export interface Cliente {
+  id?: number;
   nome: string;
   nome_completo?: string;
   empresa: string;

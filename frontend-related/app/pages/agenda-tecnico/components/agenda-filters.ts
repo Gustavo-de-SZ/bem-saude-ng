@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Agendamento } from '../../../shared/models';
 
@@ -8,11 +8,11 @@ import { Agendamento } from '../../../shared/models';
   imports: [CommonModule],
   template: `
     <div class="tcc-filters-pills">
-      <button class="tcc-pill active">Todos ({{ total }})</button>
-      <button class="tcc-pill">Confirmado ({{ countStatus('Confirmado') }})</button>
-      <button class="tcc-pill">Pendente ({{ countStatus('Pendente') }})</button>
-      <button class="tcc-pill">Concluído ({{ countStatus('Concluído') }})</button>
-      <button class="tcc-pill">Cancelado ({{ countStatus('Cancelado') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Todos'" (click)="selectFilter('Todos')">Todos ({{ compromissos.length }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Confirmado'" (click)="selectFilter('Confirmado')">Confirmado ({{ countStatus('Confirmado') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Pendente'" (click)="selectFilter('Pendente')">Pendente ({{ countStatus('Pendente') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Concluído'" (click)="selectFilter('Concluído')">Concluído ({{ countStatus('Concluído') }})</button>
+      <button class="tcc-pill" [class.active]="selectedFilter === 'Cancelado'" (click)="selectFilter('Cancelado')">Cancelado ({{ countStatus('Cancelado') }})</button>
     </div>
   `,
   styles: [`
@@ -33,11 +33,11 @@ import { Agendamento } from '../../../shared/models';
       cursor: pointer;
       transition: all 0.2s;
     }
-    
-    .tcc-pill:hover { 
-      background-color: var(--tcc-bg, #f8fafc); 
+
+    .tcc-pill:hover {
+      background-color: var(--tcc-bg, #f8fafc);
     }
-    
+
     .tcc-pill.active {
       background-color: var(--tcc-primary, #3b82f6);
       color: white;
@@ -47,12 +47,20 @@ import { Agendamento } from '../../../shared/models';
 })
 export class AgendaFilters {
   @Input() compromissos: Agendamento[] = [];
+  @Output() filterChange = new EventEmitter<string>();
 
-  get total(): number { 
-    return this.compromissos.length; 
+  selectedFilter: string = 'Todos';
+
+  get total(): number {
+    return this.compromissos.length;
   }
 
-  countStatus(status: string): number { 
-    return this.compromissos.filter(c => c.status === status).length; 
+  countStatus(status: string): number {
+    return this.compromissos.filter(c => c.status === status).length;
+  }
+
+  selectFilter(filter: string): void {
+    this.selectedFilter = filter;
+    this.filterChange.emit(filter);
   }
 }

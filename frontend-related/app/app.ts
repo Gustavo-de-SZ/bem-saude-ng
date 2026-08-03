@@ -1,12 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ToastModule } from 'primeng/toast';
 import { ProfileService } from './services/profile.service';
 import { AuthService } from './services/auth.service';
 import { filter, switchMap, take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ToastModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

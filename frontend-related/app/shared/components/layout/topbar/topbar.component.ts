@@ -7,10 +7,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <header class="tcc-topbar">
-      <div class="tcc-search-wrapper">
-        <i class="pi pi-search"></i>
-        <input type="text" [placeholder]="searchPlaceholder" (input)="onSearch($event)">
-      </div>
+      
       
       <div class="tcc-topbar-actions">
         <button class="tcc-icon-btn" (click)="onToggleTheme()">
@@ -48,7 +45,7 @@ import { CommonModule } from '@angular/common';
     .tcc-topbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       padding: 16px 0;
       background-color: transparent;
       width: 100%;

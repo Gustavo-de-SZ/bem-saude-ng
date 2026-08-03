@@ -1,25 +1,22 @@
 from sqlalchemy.orm import Session
-from src.tcc.infraestrutura.banco_dados.modelos.modelo_user import ModeloUsuario, TipoPerfil
 from src.tcc.infraestrutura.banco_dados.modelos.modelo_profissional import ModeloProfissional
 
 class RepositorioProfissional:
     def __init__(self, sessao: Session):
         self.sessao = sessao
 
-    def criar(self, email: str, senha_hash: str | None, nome_fantasia: str | None = None, cpf: str | None = None, telefone: str | None = None, descricao_servicos: str | None = None) -> ModeloProfissional:
-        usuario = ModeloUsuario(
-            email=email,
-            senha_hash=senha_hash,
-            tipo_perfil=TipoPerfil.PROFISSIONAL,
-            ativo=True
-        )
-        self.sessao.add(usuario)
-        self.sessao.flush()
-
+    def criar(
+        self,
+        usuario_id: int,
+        nome_fantasia: str | None = None,
+        cnpj: str | None = None,
+        telefone: str | None = None,
+        descricao_servicos: str | None = None
+    ) -> ModeloProfissional:
         profissional = ModeloProfissional(
-            usuario_id=usuario.id,
+            usuario_id=usuario_id,
             nome_fantasia=nome_fantasia,
-            cpf=cpf,
+            cnpj=cnpj,
             telefone=telefone,
             descricao_servicos=descricao_servicos,
             aprovado_pelo_admin=False
@@ -35,8 +32,8 @@ class RepositorioProfissional:
     def buscar_por_usuario_id(self, usuario_id: int) -> ModeloProfissional | None:
         return self.sessao.query(ModeloProfissional).filter(ModeloProfissional.usuario_id == usuario_id).first()
 
-    def buscar_por_cpf(self, cpf: str) -> ModeloProfissional | None:
-        return self.sessao.query(ModeloProfissional).filter(ModeloProfissional.cpf == cpf).first()
+    def buscar_por_cnpj(self, cnpj: str) -> ModeloProfissional | None:
+        return self.sessao.query(ModeloProfissional).filter(ModeloProfissional.cnpj == cnpj).first()
 
     def listar(self) -> list[ModeloProfissional]:
         return self.sessao.query(ModeloProfissional).all()

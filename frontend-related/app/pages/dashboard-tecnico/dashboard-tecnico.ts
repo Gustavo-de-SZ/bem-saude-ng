@@ -26,9 +26,11 @@ import { DashboardService } from '../../services/dashboard.service';
 
       <app-stats-grid [stats]="stats"></app-stats-grid>
 
-      <div class="tcc-grid-2-1">
+      <app-weekly-summary></app-weekly-summary>
+
+      <div class="tcc-grid-1">
         <app-appointments-panel [agendamentos]="agendamentos"></app-appointments-panel>
-        <app-weekly-summary></app-weekly-summary>
+
       </div>
     </div>
   `,

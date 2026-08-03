@@ -69,6 +69,25 @@ export class SolicitacaoService {
     );
   }
 
+  
+  getSolicitacao(id: string): Observable<Solicitacao> {
+    return this.auth.getAccessTokenSilently({
+      authorizationParams: {
+        audience: 'https://api.tcc-ng.com'
+      }
+    }).pipe(
+      switchMap(token => {
+        return this.http.get<Solicitacao>(`${this.configService.getApiUrl()}/solicitacoes/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+      })
+    );
+  }
+
   updateSolicitacao(solicitacao: Solicitacao): Observable<Solicitacao> {
     return this.auth.getAccessTokenSilently({
       authorizationParams: {

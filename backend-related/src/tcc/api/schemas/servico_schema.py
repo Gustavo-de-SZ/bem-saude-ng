@@ -10,6 +10,7 @@ class ServicoBase(BaseModel):
     data: str
     duracao: str
     valor: float
+    equipamento_id: Optional[int] = None
 
 class ServicoCreate(ServicoBase):
     pass

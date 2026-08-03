@@ -10,16 +10,47 @@ export const profileGuardFn: CanActivateFn = (route, state) => {
   return profileService.verificarPerfilExistente().pipe(
     map(res => {
       if (res.exists) {
-        // Option to verify if they are accessing the right area
-        // e.g. state.url.includes('/cliente') and res.type === 'cliente'
+        // Regra 1: Admin no lugar errado
+        if (res.type === 'admin' && !state.url.includes('/admin')) {
+           router.navigate(['/admin/dashboard']);
+           return false;
+        }
+
+        // Regra 2: Usuário comum tentando acessar admin
+        if (res.type !== 'admin' && state.url.includes('/admin')) {
+           router.navigate(['/painel']);
+           return false;
+        }
+
+        // Regra 3: Técnico ainda não aprovado
+        if (res.type === 'tecnico' && res.aprovado === false) {
+           router.navigate(['/pendente-aprovacao']);
+           return false;
+        }
+
+        // Regra 4: Cliente tentando acessar área do técnico
+        if (res.type === 'cliente' && state.url.startsWith('/painel')) {
+           router.navigate(['/cliente/inicio']);
+           return false;
+        }
+
+        // Regra 5: Técnico tentando acessar área do cliente
+        if (res.type === 'tecnico' && state.url.startsWith('/cliente')) {
+           router.navigate(['/painel/dashboard']);
+           return false;
+        }
+
         return true;
       }
+
+      // Permitir acesso à tela de completar cadastro
+      if (state.url.includes('/completar-cadastro')) {
+         return true;
+      }
+
       router.navigate(['/completar-cadastro']);
       return false;
     }),
-    catchError(() => {
-      // Falha ao comunicar com o backend
-      return of(true); // Allow them through in case of temporary network failure, or false if strictly required
-    })
+    catchError(() => of(true))
   );
 };
