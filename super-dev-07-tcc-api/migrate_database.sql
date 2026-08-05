@@ -1,0 +1,1 @@
+ALTER TABLE profissionais CHANGE cpf cnpj VARCHAR(20);

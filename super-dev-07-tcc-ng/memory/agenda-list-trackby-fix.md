@@ -1,0 +1,1 @@
+The NG0955 error in the agenda-list component has been fixed by implementing a proper trackBy function that uses the item's ID when available and falls back to the index to ensure uniqueness. The changes have been saved and documented in memory.

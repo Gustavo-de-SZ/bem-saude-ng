@@ -1,0 +1,1 @@
+export const environment = { production: false, auth0: { domain: 'dev-fzslqbhihrhb8va0.us.auth0.com', clientId: '0ack0PPx1NHjUHy5ym4R3rsmBjjnzBwN', authorizationParams: { redirect_uri: window.location.origin + '/painel', audience: 'https://api.tcc-ng.com', } }, api: { serverUrl: 'http://localhost:8000', } };
