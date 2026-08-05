@@ -1,0 +1,105 @@
+# =========================
+# Arquivos do Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.claude
+# Virtualenv
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Logs e arquivos temporários
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.tmp
+*.bak
+
+# Cache e metadados de pacotes
+*.egg-info/
+.eggs/
+*.egg
+dist/
+build/
+develop-eggs/
+.installed.cfg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Cobertura de testes
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Documentação
+docs/_build/
+doc/_build/
+
+# Configurações de IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos do Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Arquivos do Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# Arquivos do Flask
+instance/
+.webassets-cache
+
+# Configurações do PyInstaller
+*.manifest
+*.spec
+
+# Configurações de ambiente
+.envrc
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Arquivos do mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Arquivos do Pyre type checker
+.pyre/
+
+# Arquivos do pytype
+.pytype/
+
+# Arquivos de ferramentas de lint
+.pylint.d/
+
+# Configurações do VSCode e outros editores
+.vscode/
+.history/
+*.code-workspace
